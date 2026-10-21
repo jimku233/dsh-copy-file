@@ -1,0 +1,15 @@
+# dsh-copy-file bundle patch.
+#
+# The delivery-card action menu lives inside `ui-open-in-app` (the split button
+# on the right of each card). It has no menu-item extension slot, so this bundle
+# mounts the same browser surface with one extra menu group and disables the
+# shipped row. Every other consumer of that package (Session header, file tree,
+# document preview, changed-file review) keeps identical behavior because the
+# vendored client is generated from the installed upstream bundle by
+# `scripts/vendor-client.mjs` and only the delivery-card adapter opts in.
+- id: ui-open-in-app
+  disabled: true
+
+- insert:
+    - id: ui-open-in-app-copy-file
+      name: dsh-copy-file

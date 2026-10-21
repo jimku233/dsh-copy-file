@@ -1,0 +1,75 @@
+{
+  "name": "dsh-copy-file",
+  "version": "0.1.0",
+  "description": "Copy real files (not paths) from DSH Web file cards to the system clipboard, with Windows-like card interactions.",
+  "license": "MIT",
+  "author": "jimku233",
+  "type": "module",
+  "private": false,
+  "engines": {
+    "node": ">=22.19"
+  },
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "src",
+    "scripts",
+    "cordis.patch.yml",
+    "SKILL.md",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "CONTRIBUTORS.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-shortcuts",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "test": "node --test",
+    "vendor": "node scripts/vendor-client.mjs"
+  },
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jimku233/dsh-copy-file.git"
+  },
+  "homepage": "https://github.com/jimku233/dsh-copy-file#readme",
+  "bugs": {
+    "url": "https://github.com/jimku233/dsh-copy-file/issues"
+  }
+}
