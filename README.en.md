@@ -40,12 +40,15 @@ Cards also get Windows-style interaction:
 
 ## Screenshots
 
-This repository ships **no screenshots**. The ones captured while building it showed a real
-session (personal paths, workspace and file names), so they were deleted rather than published.
-[docs/screenshots/README.md](docs/screenshots/README.md) is a four-shot capture guide that uses
-neutral sample files and says exactly what must stay out of frame.
+The three copy rows, captured from a live `dsh web` session and cropped to the menu alone, so
+no workspace path, session title, or file name is visible:
 
----
+![the three copy rows](docs/screenshots/01-menu.png)
+
+Two more shots (success toast, degraded copy) still need to be captured with neutral sample
+files — see [docs/screenshots/README.md](docs/screenshots/README.md) for the four-shot guide and
+what must stay out of frame.
+
 
 ## Support
 
