@@ -27,7 +27,7 @@ Three new rows inside the existing dropdown; the shipped "open with" entries and
 | **Copy file** | The file itself (CF_HDROP). Paste into Explorer, WeChat, Feishu, mail attachments |
 | **Copy all N files** | Every file of the same `present` call, on the clipboard at once (shown only when N > 1) |
 | **Copy file path** | The absolute path, as **text** |
-| On failure | Degrades to copying the path and says **why** (file gone / clipboard busy / unsupported platform) — it never pretends to succeed |
+| On failure | Degrades to copying the path and says **why** (file gone / clipboard busy / unsupported platform) — it never pretends to succeed. Only when even the path cannot reach the clipboard does it say "Copy failed. Try again." |
 
 Cards also get Windows-style interaction:
 
