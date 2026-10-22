@@ -173,6 +173,13 @@ scripts/vendor-client.mjs      ← 从你安装的 DSH 重新生成，锚点缺�
 
 ---
 
+## 上游建议
+
+这个扩展之所以要 vendor 一份浏览器包，是因为原生下拉菜单没有"菜单项插槽"。
+给上游的 issue 草稿在 [docs/upstream-issue.md](docs/upstream-issue.md)（能让以后不再需要 fork）。
+
+---
+
 ## 已知限制
 
 - **拖到资源管理器**只有 Chromium 可行（`DownloadURL`）。微信/飞书聊天窗口是否识别取决于它们自己；最稳的是先复制、再在目标里粘贴。

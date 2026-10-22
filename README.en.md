@@ -152,6 +152,13 @@ Measured behavior: **adding a row needs a restart; removing one applies live.**
 
 ---
 
+## Upstream suggestion
+
+The vendored bundle exists only because the shipped dropdown has no menu-item slot.
+An issue draft for upstream lives in [docs/upstream-issue.md](docs/upstream-issue.md) — landing it would delete the fork entirely.
+
+---
+
 ## Known limitations
 
 - Dragging onto Explorer is Chromium-only; whether WeChat/Feishu accept the drop is up to them.
