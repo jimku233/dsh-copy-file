@@ -99,7 +99,7 @@ No pnpm, no network, no registry, no service, no autostart.
 powershell -ExecutionPolicy Bypass -File scripts/uninstall.ps1
 ```
 
-Restores `dsh.profile.bundles` from the record (the exact previous array), deletes the package and the record, and clears any helper process or autostart entry. Refresh the page: removal applies live (`__DSH_BOOT__` returns to the shipped row and cards behave natively again).
+Removes only its own entry from `dsh.profile.bundles` (bundles you added later survive), then deletes the package and the record and clears any helper process or autostart entry. Refresh the page: removal applies live (`__DSH_BOOT__` returns to the shipped row and cards behave natively again).
 
 ---
 

@@ -105,7 +105,7 @@ powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 powershell -ExecutionPolicy Bypass -File scripts/uninstall.ps1
 ```
 
-- 按 `install.json` **精确还原** `dsh.profile.bundles`（不是"删掉我们那一项"那么简单，是恢复安装前的数组）；
+- 只从 `dsh.profile.bundles` **移除它自己那一项**（你之后手动加的其他 bundle 会保留，不会被"还原"掉）；
 - 删除 `node_modules\dsh-copy-file` 和安装记录；
 - 清理可能存在的 helper 进程与自启快捷方式（本版本默认都没有）。
 

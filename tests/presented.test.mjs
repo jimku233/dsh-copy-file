@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { coordinate, PresentedError, resolvePresented } from '../lib/presented.mjs';
+import { coordinate, PresentedError, resolveDeclaredPaths, resolvePresented } from '../lib/presented.mjs';
 
 /**
  * Build a stub host context.
@@ -112,6 +112,17 @@ test('rejects a path that does not round-trip', async () => {
     resolvePresented(host({ roundTripMismatch: true }), {}, params('sessionId=s1&seq=5&index=0')),
     (error) => error.status === 422 && error.code === 'unmapped-path',
   );
+});
+
+test('declared paths are normalized and never read', async () => {
+  const ctx = host();
+  ctx.sessionQuery.readEvent = async () => ({
+    session: { cwd: 'D:\\ws\\sub' },
+    target: { type: 'deliverables/presented', data: { turn: 1, callId: 'c', files: [{ path: '..\\secret.txt' }] } },
+  });
+  const declared = await resolveDeclaredPaths(ctx, {}, params('sessionId=s1&seq=7&index=0'));
+  assert.deepEqual(declared.paths, ['D:\\ws\\secret.txt']);
+  assert.ok(!declared.paths[0].includes('..'), 'no unresolved parent segments');
 });
 
 test('parses only non-negative integers', () => {
