@@ -40,14 +40,11 @@ DSH（DeepSeek Harness）用 `present` 展示交付文件时，卡片上只能"�
 
 ## 截图
 
-下面两张都来自真实 `dsh web` 会话，并且**只裁到控件本身**，所以看不到工作区路径、会话标题或文件名：
+三张图都来自真实 `dsh web` 会话，并且**只裁到控件本身**，所以看不到工作区路径、会话标题或文件名：
 
-| 菜单里的三项 | 复制成功 |
-|---|---|
-| ![菜单](docs/screenshots/01-menu.png) | ![成功 toast](docs/screenshots/02-success.png) |
-
-第三张（降级提示）还需要补拍，拍摄要求和遮挡清单见
-[docs/screenshots/README.md](docs/screenshots/README.md)。
+| 菜单里的三项 | 复制成功 | 降级提示 |
+|---|---|---|
+| ![菜单](docs/screenshots/01-menu.png) | ![成功 toast](docs/screenshots/02-success.png) | ![降级 toast](docs/screenshots/03-degrade.png) |
 
 
 ## 支持范围
