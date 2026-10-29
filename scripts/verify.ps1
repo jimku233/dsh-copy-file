@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Check that dsh-copy-file is installed, current, and composed correctly.
 
@@ -9,7 +9,7 @@
     failed check so it can gate CI or a release.
 
 .PARAMETER Profile
-    Profile name. Default 'web'.
+    Profile name. Omitted: uses `desktop` when it lists the web app bundle, else `web`.
 
 .PARAMETER DshHome
     Harness home override. Defaults to $env:DSH_HOME, else ~/.dsh.
@@ -23,7 +23,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Profile = 'web',
+    [string]$Profile,
     [string]$DshHome,
     [switch]$ExpectAbsent
 )
@@ -49,10 +49,32 @@ function Read-JsonFile([string]$Path) {
     return ($raw | ConvertFrom-Json)
 }
 
+function Get-ProfileBundles($Manifest) {
+    if ($Manifest.dsh -and $Manifest.dsh.profile -and $Manifest.dsh.profile.bundles) {
+        return @($Manifest.dsh.profile.bundles)
+    }
+    return @()
+}
+
+function Resolve-ProfileName([string]$HarnessHome) {
+    if ($Profile -and $Profile.Trim() -ne '') { return $Profile.Trim() }
+    $desktopManifest = Join-Path (Join-Path (Join-Path $HarnessHome 'profiles') 'desktop') 'package.json'
+    if (Test-Path -LiteralPath $desktopManifest) {
+        try {
+            if ((Get-ProfileBundles (Read-JsonFile $desktopManifest)) -contains '@deepseek-ai/dsh-web-app') { return 'desktop' }
+        } catch {
+            # fall through to web
+        }
+    }
+    return 'web'
+}
+
 Write-Host "`ndsh-copy-file verify" -ForegroundColor White
 
 $dshHomeDir = Resolve-DshHome
-$profileDir = Join-Path (Join-Path $dshHomeDir 'profiles') $Profile
+$profileName = Resolve-ProfileName $dshHomeDir
+$profileDir = Join-Path (Join-Path $dshHomeDir 'profiles') $profileName
+Write-Host "  profile: $profileName" -ForegroundColor DarkGray
 $manifestPath = Join-Path $profileDir 'package.json'
 $targetDir = Join-Path (Join-Path $profileDir 'node_modules') $PackageName
 
@@ -76,7 +98,11 @@ Write-Host "`n[2] generated browser bundle" -ForegroundColor White
 Push-Location $PackageRoot
 try {
     $vendorOutput = & node scripts/vendor-client.mjs --check 2>&1 | Out-String
-    Write-Check ($LASTEXITCODE -eq 0) "lib/client.js matches the installed upstream bundle ($($vendorOutput.Trim()))"
+    if ($vendorOutput -match 'Could not find') {
+        Write-Host '  SKIP  no local dsh install to compare against; the committed lib/client.js is used as-is.' -ForegroundColor Yellow
+    } else {
+        Write-Check ($LASTEXITCODE -eq 0) "lib/client.js matches the installed upstream bundle ($($vendorOutput.Trim()))"
+    }
 } finally {
     Pop-Location
 }
@@ -92,7 +118,7 @@ Write-Host "`n[3] profile manifest" -ForegroundColor White
 $bundles = @()
 if (Test-Path -LiteralPath $manifestPath) {
     $manifest = Read-JsonFile $manifestPath
-    if ($manifest.dsh -and $manifest.dsh.profile -and $manifest.dsh.profile.bundles) { $bundles = @($manifest.dsh.profile.bundles) }
+    $bundles = Get-ProfileBundles $manifest
 }
 $listed = $bundles -contains $PackageName
 if ($ExpectAbsent) {
@@ -103,19 +129,25 @@ if ($ExpectAbsent) {
 }
 
 Write-Host "`n[4] composed configuration" -ForegroundColor White
-# `--dump-config` writes the profile's cordis.yml when it is missing, and it can
-# print Node diagnostics on stderr. A confined sandbox denies that write (EPERM),
-# which is an environment limit, not a verification failure, so say so.
+# Three things make this section unavailable without it being a defect:
+#   · a confined sandbox may not write the profile (EPERM);
+#   · the Electron app owns the desktop profile (`--dump-config` refuses it);
+#   · a machine without `dsh` on PATH has no CLI to ask.
 $previousErrorAction = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 try {
-    $dump = (& dsh --profile $Profile --dump-config 2>&1 | Out-String)
+    $dump = (& dsh --profile $profileName --dump-config 2>&1 | Out-String)
 } catch {
     $dump = "$_"
 } finally {
     $ErrorActionPreference = $previousErrorAction
 }
-if ($dump -match 'EPERM') {
+if (-not (Get-Command dsh -ErrorAction SilentlyContinue)) {
+    Write-Host '  SKIP  dsh is not on PATH; check the composed row after restarting the app.' -ForegroundColor Yellow
+} elseif ($dump -match 'managed exclusively by the Electron application') {
+    Write-Host '  SKIP  desktop profile is managed by the Electron app: --dump-config is unavailable by design.' -ForegroundColor Yellow
+    Write-Host '        Restart the app and look for the copy rows in a card menu.' -ForegroundColor DarkGray
+} elseif ($dump -match 'EPERM') {
     Write-Host '  SKIP  could not run dsh --dump-config: this process may not write the profile (sandbox).' -ForegroundColor Yellow
     Write-Host '        Re-run outside the sandbox to check the composed row.' -ForegroundColor DarkGray
 } elseif ($ExpectAbsent) {

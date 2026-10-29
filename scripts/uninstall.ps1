@@ -1,15 +1,15 @@
-<#
+﻿<#
 .SYNOPSIS
-    Remove dsh-copy-file from a dsh profile and restore the manifest exactly.
+    Remove dsh-copy-file from a dsh profile.
 
 .DESCRIPTION
-    Restores dsh.profile.bundles from the record written by install.ps1, deletes
-    the package from the profile's node_modules, and removes the record
-    directory. Nothing inside the dsh installation is touched, so there is no
-    build artifact to roll back.
+    Drops this package's own entry from dsh.profile.bundles (bundles added later
+    survive), deletes the package from the profile's node_modules, and removes
+    the record directory. Nothing inside the dsh installation is touched, so
+    there is no build artifact to roll back.
 
 .PARAMETER Profile
-    Profile name. Default 'web'.
+    Profile name. Omitted: uses `desktop` when it lists the web app bundle, else `web`.
 
 .PARAMETER DshHome
     Harness home override. Defaults to $env:DSH_HOME, else ~/.dsh.
@@ -19,7 +19,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Profile = 'web',
+    [string]$Profile,
     [string]$DshHome
 )
 
@@ -46,40 +46,53 @@ function Write-JsonFile([string]$Path, $Value) {
     [System.IO.File]::WriteAllText($Path, $json + "`n", (New-Object System.Text.UTF8Encoding($false)))
 }
 
+function Get-ProfileBundles($Manifest) {
+    if ($Manifest.dsh -and $Manifest.dsh.profile -and $Manifest.dsh.profile.bundles) {
+        return @($Manifest.dsh.profile.bundles)
+    }
+    return @()
+}
+
+function Resolve-ProfileName([string]$HarnessHome) {
+    if ($Profile -and $Profile.Trim() -ne '') { return $Profile.Trim() }
+    $desktopManifest = Join-Path (Join-Path (Join-Path $HarnessHome 'profiles') 'desktop') 'package.json'
+    if (Test-Path -LiteralPath $desktopManifest) {
+        try {
+            if ((Get-ProfileBundles (Read-JsonFile $desktopManifest)) -contains '@deepseek-ai/dsh-web-app') { return 'desktop' }
+        } catch {
+            # fall through to web
+        }
+    }
+    return 'web'
+}
+
 Write-Host "`ndsh-copy-file uninstaller" -ForegroundColor White
 
 $dshHomeDir = Resolve-DshHome
-$profileDir = Join-Path (Join-Path $dshHomeDir 'profiles') $Profile
+$profileName = Resolve-ProfileName $dshHomeDir
+$profileDir = Join-Path (Join-Path $dshHomeDir 'profiles') $profileName
 $manifestPath = Join-Path $profileDir 'package.json'
 $stateDir = Join-Path $profileDir '.dsh-copy-file'
 $statePath = Join-Path $stateDir 'install.json'
 $targetDir = Join-Path (Join-Path $profileDir 'node_modules') $PackageName
 
-if (-not (Test-Path -LiteralPath $profileDir)) { throw "Profile '$Profile' was not found at $profileDir." }
-Write-Step "profile: $profileDir"
+if (-not (Test-Path -LiteralPath $profileDir)) { throw "Profile '$profileName' was not found at $profileDir." }
+Write-Step "profile: $profileName ($profileDir)"
 
-# ── restore the bundle list ──────────────────────────────────────────────────
+# ── drop our own bundle entry ────────────────────────────────────────────────
 $manifest = Read-JsonFile $manifestPath
-$bundles = @()
-if ($manifest.dsh -and $manifest.dsh.profile -and $manifest.dsh.profile.bundles) { $bundles = @($manifest.dsh.profile.bundles) }
-
+$bundles = Get-ProfileBundles $manifest
+$before = @()
 if (Test-Path -LiteralPath $statePath) {
-    $state = Read-JsonFile $statePath
-    $before = @($state.bundlesBefore)
-    if ($before.Count -gt 0 -or $bundles.Contains($PackageName)) {
-        $manifest.dsh.profile | Add-Member -NotePropertyName bundles -NotePropertyValue $before -Force
-        Write-JsonFile $manifestPath $manifest
-        Write-Ok "restored the original bundle list ($($before.Count) entries)"
-    }
+    try { $before = @((Read-JsonFile $statePath).bundlesBefore) } catch { $before = @() }
+}
+$kept = @($bundles | Where-Object { $_ -ne $PackageName })
+if ($kept.Count -ne $bundles.Count) {
+    $manifest.dsh.profile | Add-Member -NotePropertyName bundles -NotePropertyValue $kept -Force
+    Write-JsonFile $manifestPath $manifest
+    Write-Ok ("removed '{0}'; {1} bundle(s) kept (was {2} before install)" -f $PackageName, $kept.Count, $before.Count)
 } else {
-    $kept = @($bundles | Where-Object { $_ -ne $PackageName })
-    if ($kept.Count -ne $bundles.Count) {
-        $manifest.dsh.profile | Add-Member -NotePropertyName bundles -NotePropertyValue $kept -Force
-        Write-JsonFile $manifestPath $manifest
-        Write-Ok "removed '$PackageName' from the bundle list"
-    } else {
-        Write-Step 'the bundle list did not contain the package'
-    }
+    Write-Step 'the bundle list did not contain the package'
 }
 
 # ── remove the package and the record ───────────────────────────────────────
