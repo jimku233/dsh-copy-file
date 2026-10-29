@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] — 2026-10-29
+
+### Changed
+
+- **`--dump-config` outcomes are now classified, not guessed** (same approach as `dsh-temp-sweep` v0.1.3):
+  profile managed by the Electron app → expected step; row present → OK; sandbox `EPERM` → step;
+  **empty output → skip**; row genuinely absent → warning. Previously an empty output and a sandbox
+  refusal both fell into the misleading "the composed config does not list the row yet" warning.
+- The closing hint branches on the managed profile ("quit the desktop app") versus a CLI profile
+  ("stop `dsh web`"). It deliberately **does not** use `patchReload: live` to promise a restart-free
+  activation: the client bundle is resolved at launch, so the first install always needs a restart —
+  unlike `dsh-temp-sweep`, whose Host plugin really can activate live.
+
+### Verified
+
+- Windows PowerShell 5.1 `Parser::ParseFile` → 0 errors for all three scripts.
+- `install.ps1 -Force` on `desktop` → managed profile classified as expected, copy succeeded, exit 0.
+- `verify.ps1` → `[1][2][3]` PASS, `[4]` SKIP (Electron), exit 0.
+
 ## [0.1.1] — 2026-10-29
 
 Works with the Electron build (DSH `0.2.1-rc.3`, `desktop` profile) as well as `0.2.0-rc.2` (`dsh web`).

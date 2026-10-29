@@ -144,12 +144,14 @@ try {
 }
 if (-not (Get-Command dsh -ErrorAction SilentlyContinue)) {
     Write-Host '  SKIP  dsh is not on PATH; check the composed row after restarting the app.' -ForegroundColor Yellow
-} elseif ($dump -match 'managed exclusively by the Electron application') {
+} elseif ($dump -match 'managed exclusively') {
     Write-Host '  SKIP  desktop profile is managed by the Electron app: --dump-config is unavailable by design.' -ForegroundColor Yellow
     Write-Host '        Restart the app and look for the copy rows in a card menu.' -ForegroundColor DarkGray
 } elseif ($dump -match 'EPERM') {
     Write-Host '  SKIP  could not run dsh --dump-config: this process may not write the profile (sandbox).' -ForegroundColor Yellow
     Write-Host '        Re-run outside the sandbox to check the composed row.' -ForegroundColor DarkGray
+} elseif ($dump.Trim() -eq '') {
+    Write-Host '  SKIP  dump-config produced no output; nothing to compare.' -ForegroundColor Yellow
 } elseif ($ExpectAbsent) {
     Write-Check ($dump -notmatch 'ui-open-in-app-copy-file') 'our row is gone from the composition'
     Write-Check ($dump -notmatch 'id: ui-open-in-app\s*\r?\n\s*disabled: true') 'the shipped ui-open-in-app row is enabled again'

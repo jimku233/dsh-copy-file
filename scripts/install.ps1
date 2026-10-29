@@ -203,25 +203,38 @@ if ($bundles -notcontains $PackageName) {
 
 # ── smoke check the composed tree ────────────────────────────────────────────
 # The Electron app owns the desktop profile, so `--dump-config` refuses it by
-# design; that is not an install failure.
+# design; that is not an install failure. Classify the outcome instead of
+# guessing: refused-by-app, row present, sandbox refusal, empty output, or a
+# real "row absent" warning.
 Write-Step 'checking the composed configuration'
+$managed = $false
 $dump = ''
 if ($dshCmd) {
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    try { $dump = (& dsh --profile $profileName --dump-config 2>&1 | Out-String) } catch { $dump = "$_" } finally { $ErrorActionPreference = $previous }
+    try { $dump = (& dsh --profile $profileName --dump-config 2>&1 | Out-String) } catch { $dump = "$($_.Exception.Message)" } finally { $ErrorActionPreference = $previous }
 }
-if ($dump -match 'managed exclusively by the Electron application') {
-    Write-Warn 'desktop profile is managed by the Electron app: --dump-config is unavailable (expected). Quit the app completely and start it again to load the plugin.'
-} elseif ($dump -match 'EPERM') {
-    Write-Warn 'could not run dsh --dump-config here (sandbox may not write the profile); verify after a restart instead'
+if ($dump -match 'managed exclusively') {
+    # The Electron app owns this profile; composing it from the CLI is refused by
+    # design, so this says nothing about the install being incomplete.
+    $managed = $true
+    Write-Step 'profile is managed by the Electron application; dump-config is unavailable here (expected)'
 } elseif ($dump -match 'ui-open-in-app-copy-file') {
     Write-Ok 'composed config contains the row'
+} elseif ($dump -match 'EPERM') {
+    Write-Step 'could not run dsh --dump-config here (sandbox cannot write the profile); check after a restart'
+} elseif ($dump.Trim() -ne '') {
+    Write-Warn 'the composed config does not show the row yet; restart DSH to apply the new bundle'
 } else {
-    Write-Warn 'the composed config does not list the row yet; restart the app and check the card menu'
+    Write-Step 'dump-config produced no output; skipping the composed-tree check'
 }
 
 Write-Host ""
-Write-Host "Installed. Quit the app (or stop dsh web) and start it again; then open a chat with a file card." -ForegroundColor Green
+Write-Host "Installed. The client bundle is resolved at launch, so a restart is required even on a live-reload profile." -ForegroundColor Green
+if ($managed) {
+    Write-Host 'Quit the DeepSeek Harness desktop app completely, start it again, then open a chat with a file card.' -ForegroundColor Gray
+} else {
+    Write-Host 'Stop dsh web (or quit the app) and start it again, then reopen the page.' -ForegroundColor Gray
+}
 Write-Host "Verify with: powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -Profile $profileName" -ForegroundColor Gray
 Write-Host "Remove with: powershell -ExecutionPolicy Bypass -File scripts/uninstall.ps1 -Profile $profileName" -ForegroundColor Gray
