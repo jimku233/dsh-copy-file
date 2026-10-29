@@ -10,7 +10,8 @@
 |---|---|
 | Windows | 11（唯一验证过的平台） |
 | Node.js | ≥ 22.19 |
-| DSH | **0.2.0-rc.2**（`lib/client.js` 是从这个版本的 `ui-open-in-app` 生成的） |
+| DSH | **0.2.0-rc.2** 与 **0.2.1-rc.3**（Electron 桌面版）；两者共用同一份 `lib/client.js` |
+| PowerShell | **Windows PowerShell 5.1**（唯一目标；本机没有 pwsh 7，不要用 7 的语法） |
 | 浏览器 | Edge / Chrome（Chromium 155 实测） |
 
 macOS / Linux 的代码路径存在但**未测试**，改动它们请自行标注。
@@ -70,7 +71,7 @@ node tests/client-bundle.test.mjs       # 确认仍然注册 6 个槽位 + 两�
 - 脚本对每一处插入都做"锚点必须存在且唯一"的断言；上游改了结构就**直接失败并指名**哪一处，不会产出半坏的包。
 - 新增文案一律加进 `scripts/vendor-client.mjs` 的 `localeBlock` / `localeBlockEn`（中英成对），不要硬编码在组件里。
 - 新增的菜单项 id、槽占用 id、语言命名空间都用本包自己的名字，避免热切换瞬间与上游重复注册。
-- 升级 DSH 后：先 `--check` 看漂移，改 `SUPPORTED_VERSION` 再 `vendor`，然后**重新安装 + 重启一次 `dsh web`**。
+- 升级 DSH 后：先 `--check` 看漂移，把新版本加进 `SUPPORTED_VERSIONS` 再 `vendor`，然后**重新安装 + 重启 DSH**（桌面版退出应用）。
 
 ---
 
@@ -106,6 +107,9 @@ npm 的注意事项：
 - **截图必须脱敏**：只截控件本身；不能出现主目录路径、工作区名、会话标题、真实文件名。规则见 [docs/screenshots/README.md](docs/screenshots/README.md)。
 - **路由只接受坐标**：`sessionId` / `seq` / `index`；任何"让前端传路径"的改动都应被拒绝。
 - **不新增运行时依赖**：目前依赖数为 0，请保持。
+- **所有 `.ps1` 必须能被 Windows PowerShell 5.1 解析**：文件带 UTF-8 BOM（否则 5.1 按 ANSI 读、中文引号会被吃掉）、只用 5.1 语法；改完用
+  `powershell -NoProfile -Command "$e=$null; [void][System.Management.Automation.Language.Parser]::ParseFile(\"<file>\",[ref]$null,[ref]$e); $e.Count"` 验证为 0。
+- **不要用 `$Home` / `$Input` / `$Host` 当参数名**：它们是只读自动变量，`$HarnessHome` 才是安全命名。
 
 ---
 

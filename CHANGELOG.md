@@ -4,6 +4,46 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] — 2026-10-29
+
+Works with the Electron build (DSH `0.2.1-rc.3`, `desktop` profile) as well as `0.2.0-rc.2` (`dsh web`).
+`lib/client.js` is unchanged: the upstream `ui-open-in-app` bundle is identical in both releases
+(`node scripts/vendor-client.mjs --check` → `lib/client.js is current.`).
+
+### Fixed
+
+- **`install.ps1` was broken in the repository** (shipped in 0.1.0): the version guard introduced in
+  `b0b9bdb` truncated its closing quote, swallowing the rest of the file, and the whole tail section
+  was duplicated. Windows PowerShell 5.1 failed with `Unexpected token 'regenerating'` /
+  `The string is missing the terminator`. Rewritten without the duplicate tail.
+- **Scripts are UTF-8 with BOM.** PowerShell 5.1 reads BOM-less scripts as ANSI and mis-parses the
+  quotes; every `.ps1` now starts with `EF BB BF` and uses CRLF.
+- **`$Home` parameter collision.** `Resolve-ProfileName([string]$Home)` threw
+  `Cannot overwrite variable Home because it is read-only`; the parameter is now `$HarnessHome`.
+- **`uninstall.ps1` no longer restores the recorded array.** It removes only its own entry from
+  `dsh.profile.bundles`, so bundles added after installation survive — matching what the README
+  already promised. `install.json.bundlesBefore` is kept, now used only for the report line.
+
+### Added
+
+- **Desktop profile support.** Without `-Profile`, the installer picks `desktop` when that profile
+  exists and lists `@deepseek-ai/dsh-web-app`, otherwise falls back to `web`.
+- **Electron-managed profile tolerated.** `dsh --dump-config` is exclusive to the Electron app on the
+  `desktop` profile; install and verify now report that as a warning/SKIP instead of failing.
+- **`SUPPORTED_VERSIONS` whitelist** (`0.2.0-rc.2`, `0.2.1-rc.3`) in `vendor-client.mjs`, and a
+  `--check` failure caused by a *missing* local dsh install now degrades to a warning/SKIP — the
+  committed `lib/client.js` is what gets installed on Electron-only machines.
+- Docs: desktop install path, PowerShell 5.1 requirement, BOM rule, and the `--dump-config` caveat
+  in both READMEs and in `CONTRIBUTING.md`.
+
+### Verified
+
+- `Parser::ParseFile` (Windows PowerShell 5.1) → 0 errors for all three scripts.
+- `powershell -File scripts/install.ps1` → auto-detected `desktop`, `lib/client.js is current.`,
+  copied 0.1.1, bundle kept last, dump-config downgraded to a warning, exit 0.
+- `-Force` reinstall → same path exercised; `scripts/verify.ps1` → `[1][2][3]` PASS, `[4]` SKIP
+  (Electron), exit 0.
+
 ## [0.1.0] — 2026-10-21
 
 First release. Pinned to DSH `0.2.0-rc.2`; Windows 11 verified.

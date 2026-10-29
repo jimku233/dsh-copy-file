@@ -2,3 +2,6 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# 内部交接简报（含本机路径，不入库）
+ISSUE-BRIEF-*.md

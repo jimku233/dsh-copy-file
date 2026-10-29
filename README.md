@@ -59,13 +59,13 @@ DSH（DeepSeek Harness）用 `present` 展示交付文件时，卡片上只能"�
 **"复制"不挑浏览器**：写剪贴板发生在本地宿主进程里，跟浏览器无关。
 **"拖出去"只有 Chromium 行**：靠 `dataTransfer` 的 `DownloadURL`，Firefox/Safari 没有这个能力，所以那两个浏览器上**不会出现拖拽**（不给你一个拖了没反应的假动作）。
 
-平台：**Windows 11 + `dsh web`**，已实测。macOS / Linux 的代码路径已实现（`osascript` / `wl-copy`·`xclip`），**未测试**，不要当成品用。
+平台：**Windows 11**，已实测两种宿主：Electron 桌面版 **0.2.1-rc.3** 与 `dsh web` **0.2.0-rc.2**。macOS / Linux 的代码路径已实现（`osascript` / `wl-copy`·`xclip`），**未测试**，不要当成品用。
 
 ---
 
 ## 安装
 
-前提：Node 22.19+、`dsh` 0.2.0-rc.2、已经能跑 `dsh web`。
+前提：Node 22.19+、**Windows PowerShell 5.1**（脚本自带 UTF-8 BOM，不需要 pwsh 7）、DSH **0.2.0-rc.2** 或 **0.2.1-rc.3**（Electron 桌面版）。
 
 ```powershell
 # 1) 克隆到任意位置
@@ -76,7 +76,10 @@ cd dsh-copy-file
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
 
-装完**重启一次 `dsh web`**，再刷新页面。
+装完**完全退出 DSH 再启动**（桌面版退出 Electron 应用；Web 版重启 `dsh web`），然后打开一个有文件卡片的会话。
+
+> 不传 `-Profile` 时脚本会自动探测：`profiles\desktop` 存在且 bundles 含 `@deepseek-ai/dsh-web-app` 就装到 `desktop`，否则回退 `web`。
+> 桌面版独占自己的 profile，`dsh --dump-config` 在它上面不可用属预期——脚本会降级成提示，不影响安装。
 
 > 为什么必须重启：DSH 的配置热更可以"移除"一个行，但"新增一个此前没解析过的包"需要启动期解析，实测热更不生效（`window.__DSH_BOOT__` 里不会出现新行）。
 
@@ -120,7 +123,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify.ps1            # 已安�
 powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ExpectAbsent   # 卸载后
 ```
 
-检查项：包文件完整性、`lib/client.js` 是否与当前安装的 DSH 上游一致、profile 清单、以及 `dsh --profile web --dump-config` 里"我们的行存在 / 原生行被禁用"（卸载后反过来断言）。
+检查项：包文件完整性、`lib/client.js` 是否与当前安装的 DSH 上游一致、profile 清单、以及 `dsh --profile <profile> --dump-config` 里"我们的行存在 / 原生行被禁用"（卸载后反过来断言）。桌面版上该段会 SKIP，属预期。
 
 自测（不需要 GUI）：
 
@@ -153,7 +156,8 @@ node tests/client-bundle.test.mjs  # 浏览器半能加载、注册 6 个槽位�
 
 ## 兼容与升级
 
-**只适配 DSH 0.2.0-rc.2**（`package.json` 里写死、`vendor-client.mjs` 会校验上游版本，不匹配直接拒绝生成）。
+**适配 DSH 0.2.0-rc.2 与 0.2.1-rc.3（桌面版）**。`vendor-client.mjs` 用 `SUPPORTED_VERSIONS` 白名单校验上游版本；这两个版本共用同一份 `lib/client.js`（上游 `ui-open-in-app` 没有变化，`--check` 为 current）。
+没有可比较的本机 dsh 安装时（Electron 版把 dsh 放在 `app.asar` 里），`--check` 会 SKIP，安装继续使用仓库里已提交的产物。
 
 原因：原生下拉菜单没有"菜单项插槽"，要在它**内部**加行，唯一非侵入的做法是把上游那个浏览器包原样 vendored 过来、打 3 处增量 hunk，再用 bundle 行替换原行。这份 `lib/client.js` 是**生成物**：
 
@@ -167,7 +171,7 @@ scripts/vendor-client.mjs      ← 从你安装的 DSH 重新生成，锚点缺�
 
 1. `node scripts/vendor-client.mjs --check` 会告诉你是否过期；
 2. `node scripts/vendor-client.mjs` 重新生成（若上游改了锚点，它会**失败并指名**哪一处，不会产出半坏的包）；
-3. 重跑 `scripts/install.ps1`，重启一次 `dsh web`。
+3. 重跑 `scripts/install.ps1`，然后重启 DSH（桌面版退出应用）。
 
 两条已实测的行为差异：**新增行需要重启**，**移除行即时生效**。
 

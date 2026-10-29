@@ -1,6 +1,6 @@
 {
   "name": "dsh-copy-file",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Copy real files (not paths) from DSH Web file cards to the system clipboard, with Windows-like card interactions.",
   "license": "MIT",
   "author": "jimku233",

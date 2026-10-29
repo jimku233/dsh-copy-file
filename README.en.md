@@ -66,7 +66,7 @@ Platform: **Windows 11 + `dsh web`**, tested. macOS and Linux paths exist (`osas
 
 ## Install
 
-Requires Node 22.19+, `dsh` 0.2.0-rc.2, and a working `dsh web`.
+Requires Node 22.19+ and **Windows PowerShell 5.1** (the scripts carry a UTF-8 BOM and do not need pwsh 7). Both DSH **0.2.0-rc.2** (`dsh web`) and the Electron **0.2.1-rc.3** build are supported.
 
 ```powershell
 git clone <this-repo> dsh-copy-file
@@ -74,7 +74,9 @@ cd dsh-copy-file
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
 
-Then **restart `dsh web` once** and refresh the page.
+Then **quit DSH completely and start it again** (quit the Electron app; restart `dsh web` for the CLI profile), and open a session with a file card.
+
+> Without `-Profile` the installer auto-detects: `profiles\desktop` wins when it lists `@deepseek-ai/dsh-web-app`, otherwise `web`. The Electron app owns that profile, so `dsh --dump-config` refuses it — the installer downgrades that to a warning.
 
 > Why a restart: DSH's live config reload removes rows fine, but a row naming a package it has not resolved before is not picked up until launch (verified: `window.__DSH_BOOT__` stays without it).
 
@@ -110,7 +112,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify.ps1                  # i
 powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ExpectAbsent    # after uninstall
 ```
 
-Checks package integrity, that `lib/client.js` matches the installed upstream bundle, the profile manifest, and the composed configuration (`dsh --profile web --dump-config`: our row present and the shipped row disabled, or the inverse).
+Checks package integrity, that `lib/client.js` matches the installed upstream bundle, the profile manifest, and the composed configuration (`dsh --profile <profile> --dump-config`: our row present and the shipped row disabled, or the inverse). That section reports SKIP on the Electron profile, by design.
 
 Without a GUI:
 
@@ -136,7 +138,7 @@ node tests/client-bundle.test.mjs  # the browser half loads and registers six sl
 
 ## Compatibility
 
-Pinned to **DSH 0.2.0-rc.2**. The shipped dropdown has no menu-item slot, so the only non-invasive way to add rows *inside* it is to vendor that browser package and splice three additive hunks, then replace the row through a bundle patch.
+Supported releases: **DSH 0.2.0-rc.2 and 0.2.1-rc.3 (Electron)**. `vendor-client.mjs` gates on a `SUPPORTED_VERSIONS` whitelist; both releases share one `lib/client.js` (the upstream `ui-open-in-app` bundle did not change, `--check` reports current). When there is no on-disk dsh to compare against (the Electron build keeps it inside `app.asar`), `--check` reports SKIP and installation uses the committed artifact. The shipped dropdown has no menu-item slot, so the only non-invasive way to add rows *inside* it is to vendor that browser package and splice three additive hunks, then replace the row through a bundle patch.
 
 `lib/client.js` is generated:
 
