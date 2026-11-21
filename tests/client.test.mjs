@@ -88,6 +88,7 @@ test('apply adds one occupant per delivery slot and never replaces a row', () =>
   for (const spec of slots) {
     assert.equal(spec.id, 'copy-file', 'a distinct occupant id keeps the shipped action in place');
     assert.equal(spec.locale, 'copy-file');
+    assert.equal(spec.order, 100, 'a fixed order stops the action jumping sides between launches');
     assert.deepEqual(spec.inject(), { presentation: 'icon' });
   }
 });
