@@ -6,12 +6,32 @@
 
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import { copyFiles, readClipboardFiles, readClipboardFormats } from '../lib/clipboard.mjs';
+
+/**
+ * Canonical form of an absolute path, for comparing what we wrote with what the
+ * clipboard gave back.
+ *
+ * Windows may answer with the 8.3 short name of a directory whose real name is
+ * longer (`RUNNER~1` for `runneradmin`), so a faithful round-trip can differ
+ * from our input as a string. `realpathSync.native` resolves both spellings to
+ * the long one; the comparison is case-insensitive because Windows paths are.
+ * @param {string} value - absolute path.
+ * @returns {string} lower-cased canonical path.
+ */
+function canonical(value) {
+  try {
+    return realpathSync.native(value).toLowerCase();
+  } catch {
+    return value.toLowerCase();
+  }
+}
 
 const windowsOnly = process.platform !== 'win32';
 
@@ -61,7 +81,7 @@ test('copies several files as a real file list (CF_HDROP)', { skip }, async () =
     assert.ok(formats.includes('FileDrop'), `missing FileDrop in ${formats.join(',')}`);
 
     const back = await readClipboardFiles();
-    assert.deepEqual(back.map((value) => value.toLowerCase()).sort(), files.map((value) => value.toLowerCase()).sort());
+    assert.deepEqual(back.map(canonical).sort(), files.map(canonical).sort());
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -100,7 +120,7 @@ test('handles a path close to the legacy 260-character limit', { skip }, async (
     assert.equal(result.ok, true, JSON.stringify(result));
     const back = await readClipboardFiles();
     assert.equal(back.length, 1);
-    assert.equal(back[0].toLowerCase(), file.toLowerCase());
+    assert.equal(canonical(back[0]), canonical(file));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
