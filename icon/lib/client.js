@@ -75,7 +75,7 @@ window.__ModuleLoader__.load({
       '[data-presented-file]{-webkit-user-drag:element}',
       '[data-presented-file] button{-webkit-user-drag:element}',
       '.dsh-copyfile-slot{display:contents}',
-      '.dsh-copyfile-group{display:inline-flex;align-items:stretch;box-sizing:border-box;border:.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-sm);height:24px;overflow:hidden;margin-inline-start:8px}',
+      '.dsh-copyfile-group{display:inline-flex;align-items:stretch;box-sizing:border-box;border:.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-sm);height:24px;overflow:hidden;margin-inline-start:16px}',
       '.dsh-copyfile-btn{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border:0;background:0 0;color:var(--dsw-alias-label-primary);cursor:pointer;padding:3px 5px;font-family:var(--dsw-font-family);font-size:11px;line-height:16px}',
       '.dsh-copyfile-btn:focus-visible{background:var(--dsw-alias-interactive-bg-hover)}',
       '@media (hover:hover){.dsh-copyfile-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}}',
@@ -683,13 +683,19 @@ window.__ModuleLoader__.load({
     /**
      * Pick the presentation: the row config if it names one, else this package's
      * look. There is no runtime switch — the two looks are separate packages.
-     * @param {object|undefined} config - the row config.
-     * @param {object} ctx - client root context (some hosts expose it as ctx.config).
+     *
+     * Reading config must never throw: a plugin whose `apply` throws simply does
+     * not render, which looks exactly like "the extension is not installed".
+     * @param {object|undefined} config - the row config, when the host passes one.
      * @returns {"icon"|"menu"} the presentation.
      */
-    function resolvePresentation(config, ctx) {
-      const chosen = config?.presentation ?? ctx?.config?.presentation;
-      if (chosen === 'menu' || chosen === 'icon') return chosen;
+    function resolvePresentation(config) {
+      try {
+        const chosen = config !== null && typeof config === 'object' ? config.presentation : undefined;
+        if (chosen === 'menu' || chosen === 'icon') return chosen;
+      } catch {
+        /* a proxy or a schema that refuses the read: fall through to the default */
+      }
       return DEFAULT_PRESENTATION;
     }
 
@@ -765,7 +771,7 @@ window.__ModuleLoader__.load({
        * @param {object} [config] - the bundle row config.
        */
       apply(ctx, config) {
-        const presentation = resolvePresentation(config, ctx);
+        const presentation = resolvePresentation(config);
         ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-copy-file: dictionaries');
         ctx.effect(() => copyInstallStyles(), 'dsh-copy-file: styles');
         for (const slot of ['deliverables.file.actions', 'deliverables.review.file.actions']) {
