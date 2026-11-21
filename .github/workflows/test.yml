@@ -1,0 +1,36 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 同一 ref 只保留最新一次运行；被取代的停在 cancelled，不是失败。
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: node ${{ matrix.node }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # 浏览器半是单文件、无构建步骤：先确认它能被解析。
+      - name: Syntax check
+        run: node --check lib/client.js
+
+      # clipboard 用例在非 Windows 上自行 skip；其余三个跨平台。
+      - name: Tests
+        shell: bash
+        run: node --test tests/client.test.mjs tests/presented.test.mjs tests/routes.test.mjs tests/clipboard.test.mjs
