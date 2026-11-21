@@ -4,6 +4,38 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] — 2026-11-21
+
+**拆成两个包**，装哪个用哪个：
+
+| 包 | 卡片上 |
+|---|---|
+| `dsh-copy-file` | 复制图标 + 一个 chevron（默认版） |
+| `dsh-copy-file-icon` | 只有一个复制图标，单击复制、右键出菜单 |
+
+### Changed
+
+- 移除了 0.2.1 里试过的运行时切换（菜单最后一行换外观、localStorage 记忆）—— 两版是**两份包**，
+  不是一个包的两种状态。
+- `icon/lib/` 由根目录的 `scripts/make-variant.mjs` 生成，只差两处（默认外观、客户端模块 id）。
+  `tests/variant.test.mjs` 和 CI 的 `make-variant --check` 盯着它，落后就红。
+- `install.ps1 -Variant icon` 装图标版；`uninstall.ps1` / `verify.ps1` 自动识别当前装的是哪个。
+  两个包注册同一组 `api/copy.*` 路由，**互斥**：另一个已存在时安装直接拒绝并提示先卸载。
+
+### Fixed
+
+- 行配置选外观这条路**验证过不生效**：客户端插件的 `apply` 拿不到行配置（上游
+  `dsh-client-locale`、`dsh-client-ui-chat` 也都从 `ctx.configForms` 读，不是从参数）。所以两版改成
+  各自的打包默认值，不再依赖配置。
+- `package.json` 的版本号补到 0.2.2（0.2.1 发版时漏改，文件里还写着 0.2.0）。
+
+## [0.2.1] — 2026-11-21
+
+### Fixed
+
+- **复制按钮和右侧「打开」按钮贴在一起**：给复制这一组加了 8px 起始间距。
+- 读外观配置时也看 `ctx.config`（仍然不够 —— 见 0.2.2）。
+
 ## [0.2.0] — 2026-11-21
 
 **The browser half no longer replaces `ui-open-in-app`.** It registers one action of its

@@ -28,8 +28,13 @@ One **copy icon** beside the card's "Open in" split button. The shipped "open wi
 | **Right-click the icon** (the chevron beside it, in `menu`) | "Copy all N files" (shown only when N > 1) and "Copy file path" |
 | On failure | Degrades to copying the path and says **why** (file gone / clipboard busy / unsupported platform) — it never pretends to succeed. Only when even the path cannot reach the clipboard does it say "Copy failed. Try again." |
 
-Two presentations (`config.presentation`, default `icon`): `icon` is the single button with a
-right-click menu; `menu` adds a chevron that opens the same menu.
+The two looks are **two packages**; install the one you want (they register the same `api/copy.*`
+routes, so they are mutually exclusive):
+
+| Package | On the card | Install |
+|---|---|---|
+| `dsh-copy-file` | icon + chevron | `scripts/install.ps1` |
+| `dsh-copy-file-icon` | a single icon, menu on right-click | `scripts/install.ps1 -Variant icon` |
 
 Cards also get Windows-style interaction:
 

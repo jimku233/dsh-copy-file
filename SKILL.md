@@ -39,13 +39,9 @@ powershell -ExecutionPolicy Bypass -File scripts/install.ps1        # idempotent
 Then tell the user to **restart the app once** and refresh the page. Adding a bundle row
 that names a package the launcher has not resolved yet needs a restart; removing one applies live.
 
-The card shows one copy icon by default. To show a chevron next to it instead, add to the
-profile's `cordis.patch.yml`:
-
-```yaml
-- id: dsh-copy-file
-  config: { presentation: menu }
-```
+The card shows the copy icon **plus a chevron** in this package. The single-button look is a
+separate package, `dsh-copy-file-icon`; the two are mutually exclusive (same routes), so switch
+by uninstalling one and installing the other with `-Variant icon`.
 
 ## Verify
 

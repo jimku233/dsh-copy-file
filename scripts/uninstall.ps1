@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Remove dsh-copy-file from a dsh profile.
 
@@ -24,7 +24,6 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$PackageName = 'dsh-copy-file'
 
 function Write-Step([string]$Text) { Write-Host "  $Text" -ForegroundColor Cyan }
 function Write-Ok([string]$Text) { Write-Host "  OK  $Text" -ForegroundColor Green }
@@ -71,13 +70,23 @@ Write-Host "`ndsh-copy-file uninstaller" -ForegroundColor White
 $dshHomeDir = Resolve-DshHome
 $profileName = Resolve-ProfileName $dshHomeDir
 $profileDir = Join-Path (Join-Path $dshHomeDir 'profiles') $profileName
-$manifestPath = Join-Path $profileDir 'package.json'
-$stateDir = Join-Path $profileDir '.dsh-copy-file'
-$statePath = Join-Path $stateDir 'install.json'
-$targetDir = Join-Path (Join-Path $profileDir 'node_modules') $PackageName
-
 if (-not (Test-Path -LiteralPath $profileDir)) { throw "Profile '$profileName' was not found at $profileDir." }
+$manifestPath = Join-Path $profileDir 'package.json'
+
+# Two mutually exclusive packages ship the same feature (menu / icon); remove
+# whichever one is actually here.
+$moduleDir = Join-Path $profileDir 'node_modules'
+$installed = @()
+foreach ($candidate in @('dsh-copy-file', 'dsh-copy-file-icon')) {
+    if (Test-Path -LiteralPath (Join-Path $moduleDir $candidate)) { $installed += $candidate }
+}
+$PackageName = if ($installed.Count -gt 0) { $installed[0] } else { 'dsh-copy-file' }
+$stateDir = Join-Path $profileDir ('.' + $PackageName)
+$statePath = Join-Path $stateDir 'install.json'
+$targetDir = Join-Path $moduleDir $PackageName
+
 Write-Step "profile: $profileName ($profileDir)"
+Write-Step "package: $PackageName"
 
 # ── drop our own bundle entry ────────────────────────────────────────────────
 $manifest = Read-JsonFile $manifestPath

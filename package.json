@@ -1,6 +1,6 @@
 {
   "name": "dsh-copy-file",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Copy real files (not paths) from DSH delivery cards to the system clipboard, as one extra card action beside the shipped Open-in button.",
   "license": "MIT",
   "author": "jimku233",

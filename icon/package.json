@@ -1,0 +1,57 @@
+{
+  "name": "dsh-copy-file-icon",
+  "version": "0.2.2",
+  "description": "dsh-copy-file with a single icon button instead of the icon + chevron pair.",
+  "license": "MIT",
+  "author": "jimku233",
+  "type": "module",
+  "private": false,
+  "engines": {
+    "node": ">=22.19"
+  },
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-deliverables"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    }
+  },
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jimku233/dsh-copy-file.git",
+    "directory": "icon"
+  },
+  "homepage": "https://github.com/jimku233/dsh-copy-file#readme",
+  "bugs": {
+    "url": "https://github.com/jimku233/dsh-copy-file/issues"
+  }
+}

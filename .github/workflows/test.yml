@@ -28,10 +28,13 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      # 浏览器半是单文件、无构建步骤：先确认它能被解析。
+      # 浏览器半是单文件、无构建步骤：先确认它能被解析，再确认 icon 包没有落后。
       - name: Syntax check
         run: node --check lib/client.js
 
+      - name: Icon variant is in sync
+        run: node scripts/make-variant.mjs --check
+
       - name: Tests
         shell: bash
-        run: node --test tests/client.test.mjs tests/presented.test.mjs tests/routes.test.mjs tests/clipboard.test.mjs
+        run: node --test tests/client.test.mjs tests/variant.test.mjs tests/presented.test.mjs tests/routes.test.mjs tests/clipboard.test.mjs

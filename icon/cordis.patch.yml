@@ -1,0 +1,14 @@
+# dsh-copy-file-icon bundle patch.
+#
+# Same action as `dsh-copy-file`, one button instead of a button plus a chevron.
+# It is a **separate package**: install either this one or `dsh-copy-file`, never
+# both (they register the same clipboard routes).
+#
+# `lib/` is generated from the root package by `scripts/make-variant.mjs` in the
+# repository root; edit `lib/client.js` there, never here.
+#
+- insert:
+    - id: dsh-copy-file-icon
+      name: dsh-copy-file-icon
+      config:
+        presentation: icon

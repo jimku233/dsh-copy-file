@@ -92,15 +92,15 @@ test('apply adds one occupant per delivery slot and never replaces a row', () =>
   }
 });
 
-test('the presentation comes from the row config and falls back to the icon', () => {
+test('the presentation comes from the row config and falls back to the chevron look', () => {
   const module = loadEntry().factory(moduleTable());
-  const menu = recordingContext();
-  module.apply(menu.ctx, { presentation: 'menu' });
-  assert.deepEqual(menu.slots[0].inject(), { presentation: 'menu' });
+  const icon = recordingContext();
+  module.apply(icon.ctx, { presentation: 'icon' });
+  assert.deepEqual(icon.slots[0].inject(), { presentation: 'icon' });
 
   const fallback = recordingContext();
   module.apply(fallback.ctx, undefined);
-  assert.deepEqual(fallback.slots[0].inject(), { presentation: 'icon' });
+  assert.deepEqual(fallback.slots[0].inject(), { presentation: 'menu' });
 });
 
 test('the dictionaries ship the copy keys under their own namespace', () => {
@@ -122,5 +122,5 @@ test('the bundle no longer carries the upstream package', () => {
   assert.ok(source.includes('function useDeliveryCard'), 'sanity: the ported controller stays ours');
   assert.ok(!source.includes('dsh-client-ui-open-in-app'), 'the upstream module must not be vendored');
   assert.ok(!patch.includes('disabled: true'), 'the shipped ui-open-in-app row must stay enabled');
-  assert.ok(patch.includes("presentation: icon"), 'the default presentation lives in the patch');
+  assert.ok(patch.includes('presentation: menu'), 'the default presentation lives in the patch');
 });

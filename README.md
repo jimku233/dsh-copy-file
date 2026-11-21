@@ -28,11 +28,22 @@ DSH（DeepSeek Harness）用 `present` 展示交付文件时，卡片上只能"�
 | **右键图标**（`menu` 外观下是旁边的 chevron） | 「复制全部 N 个文件」（仅当 N > 1 时出现）与「复制文件路径」 |
 | 失败时 | 自动降级为"复制路径"，并用 toast 说明**原因**（文件已被删除 / 剪贴板被占用 / 不支持的系统…），不会假装成功；如果连路径都写不进剪贴板，才显示「复制失败，请重试」 |
 
-两种外观二选一（`config.presentation`，默认 `icon`）：
+两种外观是**两个包**，装哪个用哪个（互斥：它们注册同一组 `api/copy.*` 路由，不能同时装）：
 
-| `icon`（默认） | `menu` |
-|---|---|
-| 只有一个图标，右键出菜单 | 图标 + chevron，下拉出同一份菜单 |
+| 包 | 卡片上 | 安装 |
+|---|---|---|
+| `dsh-copy-file` | 图标 + chevron，点 chevron 出菜单 | `scripts/install.ps1` |
+| `dsh-copy-file-icon` | 只有一个图标，单击复制、右键出菜单 | `scripts/install.ps1 -Variant icon` |
+
+切换就是卸一个装另一个：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/uninstall.ps1
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -Variant icon   # 或省略 -Variant 装回默认版
+```
+
+`icon/lib/` 是从根目录 `lib/` 生成的（客户端 bundle 不能跨包 import，只能各放一份），
+只差「默认外观」和「模块 id」两处；改代码只改根目录的 `lib/`，然后跑 `node scripts/make-variant.mjs`。
 
 卡片本身还获得 Windows 风格的交互（可选，默认开启）：
 
@@ -174,22 +185,16 @@ node tests/client.test.mjs      # 浏览器半能加载、注册 2 个槽位、�
 装上去会把整个新版 open-in-app 静默换回 0.2.1 的旧版（丢文件/图片/URL/工作区右键菜单、
 在侧边栏与浮窗打开、Open locally 快捷键）。现在这条路径没有了。
 
-两版外观，用 `config.presentation` 选（默认 `icon`）：
+两版外观是**两个包**（见上面「你会得到什么」），不是一个包的开关：
 
-| 值 | 卡片上长什么样 |
+| 包 | 卡片上长什么样 |
 |---|---|
-| `icon` | 一个复制图标；单击复制，右键出"全部 / 路径" |
-| `menu` | 同一个图标 + 一个 chevron，点开同一份菜单 |
+| `dsh-copy-file` | 图标 + 一个 chevron，点开菜单 |
+| `dsh-copy-file-icon` | 一个复制图标；单击复制，右键出菜单 |
 
-切换不用重装，改 profile 的 `cordis.patch.yml` 即可：
-
-```yaml
-- id: dsh-copy-file
-  config: { presentation: menu }
-```
-
-升级 DSH 后直接重装，没有生成步骤。万一哪天契约变了，症状是"卡片上没有复制图标"
-（不是报错）；`scripts/verify.ps1` 的第 `[2]` 段和 `node tests/client.test.mjs` 会先告诉你。
+不用改任何配置文件：卸一个、装另一个即可。升级 DSH 后直接重装，没有生成步骤。万一哪天契约变了，
+症状是"卡片上没有复制图标"（不是报错）；`scripts/verify.ps1` 的第 `[2]` 段和
+`node tests/client.test.mjs` 会先告诉你。
 
 两条已实测的行为差异：**新增行需要重启**，**移除行即时生效**。
 

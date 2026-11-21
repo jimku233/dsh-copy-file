@@ -7,17 +7,14 @@
 # there is no vendored browser bundle to regenerate.
 #
 # presentation:
-#   icon  (default) one icon button; click copies, right-click opens the rest
-#   menu  the same button plus a chevron that opens the rest
+#   menu  (default) the button plus a chevron that opens the rest
+#   icon  a single button; the same menu opens on right-click
 #
-# To switch without reinstalling, override the row in your profile's
-# cordis.patch.yml (`~/.dsh/profiles/<name>/cordis.patch.yml`):
-#
-#   - id: dsh-copy-file
-#     config: { presentation: menu }
+# The card menu carries a "use the other look" row, so the choice can be made
+# without editing any file; that saved choice wins over this value.
 #
 - insert:
     - id: dsh-copy-file
       name: dsh-copy-file
       config:
-        presentation: icon
+        presentation: menu

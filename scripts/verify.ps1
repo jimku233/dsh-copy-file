@@ -76,7 +76,14 @@ $profileName = Resolve-ProfileName $dshHomeDir
 $profileDir = Join-Path (Join-Path $dshHomeDir 'profiles') $profileName
 Write-Host "  profile: $profileName" -ForegroundColor DarkGray
 $manifestPath = Join-Path $profileDir 'package.json'
-$targetDir = Join-Path (Join-Path $profileDir 'node_modules') $PackageName
+# Whichever of the two mutually exclusive packages is installed.
+$moduleDir = Join-Path $profileDir 'node_modules'
+$detected = @()
+foreach ($candidate in @('dsh-copy-file', 'dsh-copy-file-icon')) {
+    if (Test-Path -LiteralPath (Join-Path $moduleDir $candidate)) { $detected += $candidate }
+}
+if ($detected.Count -gt 0) { $PackageName = $detected[0] }
+$targetDir = Join-Path $moduleDir $PackageName
 
 Write-Host "`n[1] package files" -ForegroundColor White
 $installed = Test-Path -LiteralPath (Join-Path $targetDir 'package.json')
@@ -106,6 +113,11 @@ if (Test-Path -LiteralPath $clientPath) {
     if (Test-Path -LiteralPath $patchPath) {
         $patchText = [System.IO.File]::ReadAllText($patchPath, [System.Text.Encoding]::UTF8)
         Write-Check (-not ($patchText -match '(?m)^\s*disabled:\s*true')) 'the patch never disables a shipped row'
+    }
+    $variantScript = Join-Path $PackageRoot 'scripts\make-variant.mjs'
+    if (Test-Path -LiteralPath $variantScript) {
+        $null = (& node $variantScript --check 2>&1 | Out-String)
+        Write-Check ($LASTEXITCODE -eq 0) 'icon/lib mirrors lib (make-variant --check)'
     }
     # Loads the bundle with a stub module table, so this proves the file parses
     # and that apply() registers exactly the two delivery slots.

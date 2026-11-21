@@ -25,19 +25,37 @@
 .PARAMETER Force
     Reinstall even when the same version is already present.
 
+.PARAMETER Variant
+    Which of the two packages to install: `menu` (the default, icon + chevron) or
+    `icon` (a single button whose menu opens on right-click). They are separate
+    packages and cannot be installed side by side; uninstall one before the other.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -Variant icon
 #>
 [CmdletBinding()]
 param(
     [string]$Profile,
     [string]$DshHome,
-    [switch]$Force
+    [switch]$Force,
+    [ValidateSet('menu', 'icon')]
+    [string]$Variant = 'menu'
 )
 
 $ErrorActionPreference = 'Stop'
-$PackageRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$PackageName = 'dsh-copy-file'
+$RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+if ($Variant -eq 'icon') {
+    $PackageRoot = Join-Path $RepoRoot 'icon'
+    $PackageName = 'dsh-copy-file-icon'
+    $OtherName = 'dsh-copy-file'
+} else {
+    $PackageRoot = $RepoRoot
+    $PackageName = 'dsh-copy-file'
+    $OtherName = 'dsh-copy-file-icon'
+}
 
 function Write-Step([string]$Text) { Write-Host "  $Text" -ForegroundColor Cyan }
 function Write-Ok([string]$Text) { Write-Host "  OK  $Text" -ForegroundColor Green }
@@ -102,6 +120,13 @@ if (-not (Test-Path -LiteralPath $manifestPath)) { throw "No package.json in $pr
 $stateDir = Join-Path $profileDir '.dsh-copy-file'
 $statePath = Join-Path $stateDir 'install.json'
 $targetDir = Join-Path (Join-Path $profileDir 'node_modules') $PackageName
+$otherDir = Join-Path (Join-Path $profileDir 'node_modules') $OtherName
+if (Test-Path -LiteralPath $otherDir) {
+    throw "The other variant ('$OtherName') is installed in profile '$profileName'. They are mutually exclusive: run scripts/uninstall.ps1 first, then install -Variant $Variant."
+}
+if ((Get-ProfileBundles (Read-JsonFile $manifestPath)) -contains $OtherName) {
+    throw "Profile '$profileName' still lists '$OtherName' in dsh.profile.bundles. Run scripts/uninstall.ps1 first."
+}
 Write-Step "profile      : $profileName ($profileDir)"
 Write-Step "harness home : $dshHomeDir"
 
