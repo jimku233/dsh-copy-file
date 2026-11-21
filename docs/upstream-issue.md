@@ -1,5 +1,9 @@
 # 上游建议：给交付卡片的下拉菜单加一个"菜单项插槽"
 
+> **历史文档（0.1.x 时代）。** 这份草稿写于本项目还在 vendor 上游浏览器包的时候。
+> 0.2.x 的 `deliverables.file.actions` 已经是 `kind: list` 的 list 槽位，本项目自 0.2.0
+> 起直接注册自己的 occupant，不再需要这个请求。留着仅作背景，不建议再提。
+>
 > 这是一份可直接提交到 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness/issues) 的 issue 草稿。
 > 正文按上游习惯用英文写，末尾附中文摘要。提交前请替换 `<你的仓库地址>` 等占位。
 

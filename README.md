@@ -20,14 +20,19 @@ DSH（DeepSeek Harness）用 `present` 展示交付文件时，卡片上只能"�
 
 ## 你会得到什么
 
-菜单里多三项（原来那组"打开方式"和"显示文件位置"一个都没动）：
+卡片右侧多一个**复制图标**。原来那组"打开方式"和"显示文件位置"一个都没动——它们还在原位、还是原来的按钮，我们只是**并排加了一个**：
 
-| 菜单项 | 行为 |
+| 动作 | 行为 |
 |---|---|
-| **复制文件** | 文件本体进剪贴板（CF_HDROP）。可以粘到资源管理器、微信、飞书、邮件附件区 |
-| **复制全部 N 个文件** | 同一次 `present` 的全部文件一次放进剪贴板（仅当 N > 1 时出现） |
-| **复制文件路径** | 把绝对路径作为**文本**放进剪贴板 |
+| **单击图标** | 文件本体进剪贴板（CF_HDROP）。可以粘到资源管理器、微信、飞书、邮件附件区 |
+| **右键图标**（`menu` 外观下是旁边的 chevron） | 「复制全部 N 个文件」（仅当 N > 1 时出现）与「复制文件路径」 |
 | 失败时 | 自动降级为"复制路径"，并用 toast 说明**原因**（文件已被删除 / 剪贴板被占用 / 不支持的系统…），不会假装成功；如果连路径都写不进剪贴板，才显示「复制失败，请重试」 |
+
+两种外观二选一（`config.presentation`，默认 `icon`）：
+
+| `icon`（默认） | `menu` |
+|---|---|
+| 只有一个图标，右键出菜单 | 图标 + chevron，下拉出同一份菜单 |
 
 卡片本身还获得 Windows 风格的交互（可选，默认开启）：
 
@@ -40,9 +45,10 @@ DSH（DeepSeek Harness）用 `present` 展示交付文件时，卡片上只能"�
 
 ## 截图
 
-三张图都来自真实 `dsh web` 会话，并且**只裁到控件本身**，所以看不到工作区路径、会话标题或文件名：
+后两张来自真实 `dsh web` 会话，并且**只裁到控件本身**，所以看不到工作区路径、会话标题或文件名。
+第一张是 0.1.x 的旧外观（行在"打开方式"下拉里）——0.2.0 起改成卡片上的独立图标，图还没重拍：
 
-| 菜单里的三项 | 复制成功 | 降级提示 |
+| 0.1.x 的下拉菜单（历史） | 复制成功 | 降级提示 |
 |---|---|---|
 | ![菜单](docs/screenshots/01-menu.png) | ![成功 toast](docs/screenshots/02-success.png) | ![降级 toast](docs/screenshots/03-degrade.png) |
 
@@ -59,13 +65,13 @@ DSH（DeepSeek Harness）用 `present` 展示交付文件时，卡片上只能"�
 **"复制"不挑浏览器**：写剪贴板发生在本地宿主进程里，跟浏览器无关。
 **"拖出去"只有 Chromium 行**：靠 `dataTransfer` 的 `DownloadURL`，Firefox/Safari 没有这个能力，所以那两个浏览器上**不会出现拖拽**（不给你一个拖了没反应的假动作）。
 
-平台：**Windows 11**，已实测两种宿主：Electron 桌面版 **0.2.1-rc.3** 与 `dsh web` **0.2.0-rc.2**。macOS / Linux 的代码路径已实现（`osascript` / `wl-copy`·`xclip`），**未测试**，不要当成品用。
+平台：**Windows 11**，已实测两种宿主：Electron 桌面版 **0.2.1-rc.3 / 0.2.2-rc.5** 与 `dsh web` **0.2.0-rc.2**。macOS / Linux 的代码路径已实现（`osascript` / `wl-copy`·`xclip`），**未测试**，不要当成品用。
 
 ---
 
 ## 安装
 
-前提：Node 22.19+、**Windows PowerShell 5.1**（脚本自带 UTF-8 BOM，不需要 pwsh 7）、DSH **0.2.0-rc.2** 或 **0.2.1-rc.3**（Electron 桌面版）。
+前提：Node 22.19+、**Windows PowerShell 5.1**（脚本自带 UTF-8 BOM，不需要 pwsh 7）、DSH **0.2.0-rc.2 及以上**（`dsh web` 或 Electron 桌面版均可；0.2.2-rc.5 上已验证）。
 
 ```powershell
 # 1) 克隆到任意位置
@@ -123,7 +129,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify.ps1            # 已安�
 powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ExpectAbsent   # 卸载后
 ```
 
-检查项：包文件完整性、`lib/client.js` 是否与当前安装的 DSH 上游一致、profile 清单、以及 `dsh --profile <profile> --dump-config` 里"我们的行存在 / 原生行被禁用"（卸载后反过来断言）。桌面版上该段会 SKIP，属预期。
+检查项：包文件完整性、浏览器半的槽位契约（模块 id / 没有 vendor 上游 / 交付槽 / 补丁不禁用任何原生行 / 客户端自测）、profile 清单、以及 `dsh --profile <profile> --dump-config` 里"我们的行存在"。桌面版上该段会 SKIP，属预期。
 
 自测（不需要 GUI）：
 
@@ -131,7 +137,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ExpectAbsent   # �
 node tests/clipboard.test.mjs   # 真机剪贴板：中文名/空格/引号/220 字符路径/多文件/缺文件
 node tests/presented.test.mjs   # 坐标解析与拒绝分支
 node tests/routes.test.mjs      # 四个路由 + 降级返回
-node tests/client-bundle.test.mjs  # 浏览器半能加载、注册 6 个槽位与字典
+node tests/client.test.mjs      # 浏览器半能加载、注册 2 个槽位、两份字典键一致
 ```
 
 > 跑 `node --test` 时如果 Node 在沙箱里无法 spawn 子进程，逐个文件跑即可（`node tests/xxx.test.mjs`）。
@@ -156,31 +162,43 @@ node tests/client-bundle.test.mjs  # 浏览器半能加载、注册 6 个槽位�
 
 ## 兼容与升级
 
-**适配 DSH 0.2.0-rc.2 与 0.2.1-rc.3（桌面版）**。`vendor-client.mjs` 用 `SUPPORTED_VERSIONS` 白名单校验上游版本；这两个版本共用同一份 `lib/client.js`（上游 `ui-open-in-app` 没有变化，`--check` 为 current）。
-没有可比较的本机 dsh 安装时（Electron 版把 dsh 放在 `app.asar` 里），`--check` 会 SKIP，安装继续使用仓库里已提交的产物。
+**兼容性是一个契约，不是一个版本号。** 浏览器半只依赖三件事：`deliverables.file.actions`
+仍是 `kind: list` 的槽位；卡片仍往下传 `actionUrl / available / pending / onAction`；
+卡片根节点仍带 `data-presented-file`。已在 **0.2.0-rc.2 / 0.2.1-rc.3 / 0.2.2-rc.5**
+验证；更新的版本只要这三件事没变，就不需要适配。
 
-原因：原生下拉菜单没有"菜单项插槽"，要在它**内部**加行，唯一非侵入的做法是把上游那个浏览器包原样 vendored 过来、打 3 处增量 hunk，再用 bundle 行替换原行。这份 `lib/client.js` 是**生成物**：
+为什么不再 vendor：原生下拉菜单确实没有"菜单项插槽"，但**卡片的动作区本身就是一个 list 槽位**，
+往上挂第二个 occupant（`id: 'copy-file'`）就够了，不必替换上游那个包。0.2.2-rc.5 把上游
+`ui-open-in-app/lib/client.js` 压成了单行：9 个拼接锚点里 7 个消失，`useDeliveryCard`
+也不再存在于上游 —— 老方案在那里**已经无法重新生成**；而它的 `disabled: true` 仍然命中，
+装上去会把整个新版 open-in-app 静默换回 0.2.1 的旧版（丢文件/图片/URL/工作区右键菜单、
+在侧边栏与浮窗打开、Open locally 快捷键）。现在这条路径没有了。
 
+两版外观，用 `config.presentation` 选（默认 `icon`）：
+
+| 值 | 卡片上长什么样 |
+|---|---|
+| `icon` | 一个复制图标；单击复制，右键出"全部 / 路径" |
+| `menu` | 同一个图标 + 一个 chevron，点开同一份菜单 |
+
+切换不用重装，改 profile 的 `cordis.patch.yml` 即可：
+
+```yaml
+- id: dsh-copy-file
+  config: { presentation: menu }
 ```
-src/copy-ui.js                 ← 全部新增代码（可读、可改）
-lib/client.js                  ← 生成物，不要手改
-scripts/vendor-client.mjs      ← 从你安装的 DSH 重新生成，锚点缺失/不唯一就报错
-```
 
-升级 DSH 后：
-
-1. `node scripts/vendor-client.mjs --check` 会告诉你是否过期；
-2. `node scripts/vendor-client.mjs` 重新生成（若上游改了锚点，它会**失败并指名**哪一处，不会产出半坏的包）；
-3. 重跑 `scripts/install.ps1`，然后重启 DSH（桌面版退出应用）。
+升级 DSH 后直接重装，没有生成步骤。万一哪天契约变了，症状是"卡片上没有复制图标"
+（不是报错）；`scripts/verify.ps1` 的第 `[2]` 段和 `node tests/client.test.mjs` 会先告诉你。
 
 两条已实测的行为差异：**新增行需要重启**，**移除行即时生效**。
 
 ---
 
-## 上游建议
+## 上游
 
-这个扩展之所以要 vendor 一份浏览器包，是因为原生下拉菜单没有"菜单项插槽"。
-给上游的 issue 草稿在 [docs/upstream-issue.md](docs/upstream-issue.md)（能让以后不再需要 fork）。
+`docs/upstream-issue.md` 是 0.1.x 时代写的请求（给下拉菜单加"菜单项插槽"）。
+0.2.x 的 `deliverables.file.actions` 已经是 list 槽位，这个请求对本项目不再必要，仅作历史保留。
 
 ---
 
@@ -204,8 +222,8 @@ scripts/vendor-client.mjs      ← 从你安装的 DSH 重新生成，锚点缺�
 lib/index.js         宿主半：四个已认证路由（copy.file / copy.path / copy.probe / copy.raw）
 lib/presented.mjs    坐标 → 路径（含"声明路径"降级解析）
 lib/clipboard.mjs    CF_HDROP 写入 + 回读校验（Windows 用 .NET Clipboard）
-src/copy-ui.js       浏览器半的全部新增代码（菜单、选中、双击、Ctrl+C、拖拽）
-cordis.patch.yml     bundle 补丁：禁用 ui-open-in-app，插入 dsh-copy-file 行
+lib/client.js        浏览器半（手写）：一个 occupant、两种外观、卡片交互
+cordis.patch.yml     bundle 补丁：只插入 dsh-copy-file 一行，不禁用任何原生行
 scripts/install.ps1  幂等安装（记录安装前状态）
 scripts/uninstall.ps1 精确回滚
 scripts/verify.ps1   只读校验（含 -ExpectAbsent）

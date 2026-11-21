@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Check that dsh-copy-file is installed, current, and composed correctly.
 
@@ -94,24 +94,31 @@ if ($ExpectAbsent) {
     }
 }
 
-Write-Host "`n[2] generated browser bundle" -ForegroundColor White
-Push-Location $PackageRoot
-try {
-    $vendorOutput = & node scripts/vendor-client.mjs --check 2>&1 | Out-String
-    if ($vendorOutput -match 'Could not find') {
-        Write-Host '  SKIP  no local dsh install to compare against; the committed lib/client.js is used as-is.' -ForegroundColor Yellow
-    } else {
-        Write-Check ($LASTEXITCODE -eq 0) "lib/client.js matches the installed upstream bundle ($($vendorOutput.Trim()))"
-    }
-} finally {
-    Pop-Location
-}
+Write-Host "`n[2] browser half" -ForegroundColor White
 $clientPath = Join-Path $PackageRoot 'lib/client.js'
 if (Test-Path -LiteralPath $clientPath) {
     $client = [System.IO.File]::ReadAllText($clientPath, [System.Text.Encoding]::UTF8)
-    Write-Check ($client.Contains('id: "dsh-copy-file"')) 'bundle registers the dsh-copy-file module id'
-    Write-Check ($client.Contains('useCopyGesture')) 'menu rows are present'
+    Write-Check ($client.Contains("id: 'dsh-copy-file'")) 'bundle registers the dsh-copy-file module id'
+    Write-Check (-not $client.Contains('dsh-client-ui-open-in-app')) 'no vendored copy of the shipped open-in-app package'
+    Write-Check ($client.Contains("'deliverables.file.actions'")) 'registers the delivery-card action slot'
     Write-Check ($client.Contains('copyInstallCardInteraction')) 'card interaction is present'
+    $patchPath = Join-Path $PackageRoot 'cordis.patch.yml'
+    if (Test-Path -LiteralPath $patchPath) {
+        $patchText = [System.IO.File]::ReadAllText($patchPath, [System.Text.Encoding]::UTF8)
+        Write-Check (-not ($patchText -match '(?m)^\s*disabled:\s*true')) 'the patch never disables a shipped row'
+    }
+    # Loads the bundle with a stub module table, so this proves the file parses
+    # and that apply() registers exactly the two delivery slots.
+    Push-Location $PackageRoot
+    try {
+        $testOutput = (& node tests/client.test.mjs 2>&1 | Out-String)
+        Write-Check ($LASTEXITCODE -eq 0) 'tests/client.test.mjs passes (module id, slots, dictionaries)'
+        if ($LASTEXITCODE -ne 0) {
+            $testOutput.Trim().Split("`n") | Select-Object -Last 10 | ForEach-Object { Write-Host "        $($_.Trim())" -ForegroundColor DarkGray }
+        }
+    } finally {
+        Pop-Location
+    }
 }
 
 Write-Host "`n[3] profile manifest" -ForegroundColor White

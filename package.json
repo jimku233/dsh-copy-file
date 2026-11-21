@@ -1,7 +1,7 @@
 {
   "name": "dsh-copy-file",
-  "version": "0.1.2",
-  "description": "Copy real files (not paths) from DSH Web file cards to the system clipboard, with Windows-like card interactions.",
+  "version": "0.2.0",
+  "description": "Copy real files (not paths) from DSH delivery cards to the system clipboard, as one extra card action beside the shipped Open-in button.",
   "license": "MIT",
   "author": "jimku233",
   "type": "module",
@@ -12,7 +12,6 @@
   "main": "lib/index.js",
   "files": [
     "lib",
-    "src",
     "scripts",
     "cordis.patch.yml",
     "SKILL.md",
@@ -27,16 +26,7 @@
     "client": {
       "platform": "web",
       "inject": [
-        "@deepseek-ai/dsh-api-gateway",
-        "@deepseek-ai/dsh-api-remotes",
-        "@deepseek-ai/dsh-api-session-controller",
-        "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-shortcuts",
-        "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-layout",
-        "@deepseek-ai/dsh-client-ui-renderer",
-        "@deepseek-ai/dsh-client-ui-session",
-        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview"
+        "@deepseek-ai/dsh-client-ui-deliverables"
       ]
     },
     "bundle": {
@@ -52,8 +42,7 @@
     }
   },
   "scripts": {
-    "test": "node --test",
-    "vendor": "node scripts/vendor-client.mjs"
+    "test": "node --test"
   },
   "exports": {
     ".": {

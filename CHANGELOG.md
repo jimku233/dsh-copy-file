@@ -4,6 +4,50 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-11-21
+
+**The browser half no longer replaces `ui-open-in-app`.** It registers one action of its
+own into the delivery card's `deliverables.file.actions` slot, which the shipped
+`ui-deliverables` declares as `kind: list`. Upstream is left untouched, so a DSH upgrade
+can neither roll the shipped UI back nor break the extension by moving an anchor.
+
+### Changed
+
+- **New extension point.** `apply()` registers `{ name: 'deliverables.file.actions', id: 'copy-file' }`
+  and the review-card twin, instead of a bundle patch that disabled `ui-open-in-app` and
+  substituted a vendored copy. Verified against `0.2.2-rc.5`: its `ui-open-in-app/lib/client.js`
+  is a single minified line, 7 of the 9 splice anchors were gone, and `useDeliveryCard` no
+  longer existed upstream — the old pipeline could not regenerate at all.
+- **Two presentations**, chosen by `config.presentation` (default `icon`): `icon` is one
+  button (click copies, right-click opens the rest); `menu` adds a chevron next to it.
+  Both share one code path; override the row in the profile patch to switch.
+- `lib/client.js` is hand-written (~33 KB) instead of generated; the shipped upstream code
+  is no longer copied into this repository. `scripts/vendor-client.mjs`, `src/copy-ui.js`
+  and `tests/client-bundle.test.mjs` are removed; `tests/client.test.mjs` loads the bundle
+  with a stub module table and asserts the module id, both slot occupants, and the
+  dictionaries.
+- `dsh.client.inject` shrinks from ten packages to `@deepseek-ai/dsh-client-ui-deliverables`.
+- `install.ps1` no longer regenerates a bundle, and `verify.ps1` replaces the
+  "matches the installed upstream bundle" check with a contract check: module id, no
+  vendored upstream, the delivery slot, and a patch that never disables a shipped row.
+
+### Fixed
+
+- **Silent UI downgrade on 0.2.2.** `- id: ui-open-in-app / disabled: true` still matched
+  the shipped row in `0.2.2-rc.5`, so installing 0.1.x there swapped in a `0.2.1`-era
+  module and quietly removed the file / image / URL / workspace right-click menus, the
+  open-in-sidebar and open-in-float rows, and the Open locally shortcut.
+- Version pins. Support is stated as a slot contract rather than a version whitelist;
+  `install.json` now records `dshOnPath` (observed) instead of `pinnedDsh`.
+
+### Verified
+
+- `node tests/client.test.mjs` → 5/5; the three Host test files unchanged and green.
+- `verify.ps1 [2]` → module id, no vendored upstream, delivery slot, card interaction,
+  a patch without `disabled: true`, and the client test all PASS.
+- Not verified in this release: the installed profile still runs 0.1.2, so the new action
+  has not been looked at in a live page yet. Reinstall and restart the app first.
+
 ## [0.1.2] — 2026-10-29
 
 ### Changed

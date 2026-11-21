@@ -1,5 +1,4 @@
-# lib/client.js 由 scripts/vendor-client.mjs 从已安装的 DSH 生成，不参与 diff 统计
-lib/client.js linguist-generated=true
+# lib/client.js 是手写源码，和其它源文件一样参与 review 与 diff
 docs/screenshots/*.png binary
 
 # 统一换行：源码 LF，Windows 脚本保留 CRLF，避免 clone 后满屏 diff

@@ -1,15 +1,23 @@
 # dsh-copy-file bundle patch.
 #
-# The delivery-card action menu lives inside `ui-open-in-app` (the split button
-# on the right of each card). It has no menu-item extension slot, so this bundle
-# mounts the same browser surface with one extra menu group and disables the
-# shipped row. Every other consumer of that package (Session header, file tree,
-# document preview, changed-file review) keeps identical behavior because the
-# vendored client is generated from the installed upstream bundle by
-# `scripts/vendor-client.mjs` and only the delivery-card adapter opts in.
-- id: ui-open-in-app
-  disabled: true
-
+# Adds one action of its own beside the delivery card's "Open in" split button.
+# `deliverables.file.actions` is declared `kind: list`, so this row coexists with
+# the shipped `ui-open-in-app` instead of replacing it: nothing upstream is
+# disabled, an upstream upgrade cannot silently roll the shipped UI back, and
+# there is no vendored browser bundle to regenerate.
+#
+# presentation:
+#   icon  (default) one icon button; click copies, right-click opens the rest
+#   menu  the same button plus a chevron that opens the rest
+#
+# To switch without reinstalling, override the row in your profile's
+# cordis.patch.yml (`~/.dsh/profiles/<name>/cordis.patch.yml`):
+#
+#   - id: dsh-copy-file
+#     config: { presentation: menu }
+#
 - insert:
-    - id: ui-open-in-app-copy-file
+    - id: dsh-copy-file
       name: dsh-copy-file
+      config:
+        presentation: icon

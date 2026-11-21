@@ -5,9 +5,10 @@ description: Install, verify, or remove dsh-copy-file — a DSH Web GUI extensio
 
 # dsh-copy-file
 
-A one-package DSH extension: a bundle row plus a vendored browser bundle. It never
+A one-package DSH extension: a bundle row plus a small hand-written browser module. It never
 modifies the DSH installation; it only adds a package to the user's profile and one
-entry to `dsh.profile.bundles`.
+entry to `dsh.profile.bundles`. The browser half adds one action of its own beside the
+shipped "Open in" button and leaves that package enabled.
 
 ## When to use this skill
 
@@ -22,9 +23,12 @@ Do not use it for plain clipboard text (DSH already copies paths from the Sideba
 
 ## Before you start
 
-- Windows 11 + `dsh web` is the tested target. macOS/Linux code paths exist but are untested; say so instead of promising them.
-- The repo must be pinned to DSH **0.2.0-rc.2**. `scripts/vendor-client.mjs` refuses any other upstream version.
-- Ask before writing outside the workspace: installation edits `%USERPROFILE%\.dsh\profiles\web`, which a `workspace-write` sandbox blocks.
+- Windows 11 is the tested target. macOS/Linux code paths exist but are untested; say so instead of promising them.
+- Compatibility is a contract, not a version: the browser half needs `deliverables.file.actions`
+  to stay a `kind: list` slot that passes `actionUrl` / `available` / `pending` / `onAction`.
+  Verified on `0.2.0-rc.2`, `0.2.1-rc.3` and `0.2.2-rc.5`; an unknown newer version is fine
+  until that contract moves.
+- Ask before writing outside the workspace: installation edits `%USERPROFILE%\.dsh\profiles\<name>`, which a `workspace-write` sandbox blocks.
 
 ## Install
 
@@ -32,8 +36,16 @@ Do not use it for plain clipboard text (DSH already copies paths from the Sideba
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1        # idempotent, records the pre-install state
 ```
 
-Then tell the user to **restart `dsh web` once** and refresh the page. Adding a bundle row
+Then tell the user to **restart the app once** and refresh the page. Adding a bundle row
 that names a package the launcher has not resolved yet needs a restart; removing one applies live.
+
+The card shows one copy icon by default. To show a chevron next to it instead, add to the
+profile's `cordis.patch.yml`:
+
+```yaml
+- id: dsh-copy-file
+  config: { presentation: menu }
+```
 
 ## Verify
 
@@ -41,22 +53,24 @@ that names a package the launcher has not resolved yet needs a restart; removing
 powershell -ExecutionPolicy Bypass -File scripts/verify.ps1
 ```
 
-Expect eight PASS lines, including `our row is in the composition` and
-`the shipped ui-open-in-app row is disabled`.
+Expect PASS on `[1] package files`, `[2] browser half` (module id, no vendored upstream,
+the delivery slot, card interaction, a patch that disables nothing, and the client test),
+`[3] profile manifest`; `[4] composed configuration` is SKIP on the Electron profile by design.
 
 Functional checks, in order — do not skip them and do not claim success without output:
 
-1. Open a Session that has delivery cards; click the card's chevron; the menu must list
-   `复制文件`, `复制全部 N 个文件` (only when N > 1), `复制文件路径`, and keep
-   `显示文件位置` last.
-2. Click **复制文件**, then read the clipboard from PowerShell:
+1. Open a Session that has delivery cards. A copy icon must sit to the right of the card's
+   "Open in" split button, and the split button must still be there with its own menu.
+2. Click the copy icon, then read the clipboard from PowerShell:
    `[System.Windows.Forms.Clipboard]::GetDataObject().GetFormats()` must contain `FileDrop`,
    and `GetFileDropList()` must return the exact absolute path.
    A text copy would show `UnicodeText`/`Text` instead — that is the failure worth catching.
-3. Delete or rename the source file, click **复制文件** again: the toast must explain the
+3. Right-click the copy icon (or use the chevron in `menu` mode): the menu must list
+   `复制全部 N 个文件` (only when N > 1) and `复制文件路径`.
+4. Delete or rename the source file, click the icon again: the toast must explain the
    degradation, and the clipboard must now hold the **path as text**.
-4. Select a card (single click), press Ctrl+C: same `FileDrop` expectation.
-5. Drag the card inside the page: the composer must gain an attachment chip.
+5. Select a card (single click), press Ctrl+C: same `FileDrop` expectation.
+6. Drag the card inside the page: the composer must gain an attachment chip.
 
 ## Uninstall
 
@@ -79,7 +93,8 @@ The uninstaller restores the recorded bundle array, deletes the package, and rem
 
 | Symptom | Likely cause | Action |
 |---|---|---|
-| Menu rows missing after install | `dsh web` not restarted | restart once, refresh |
-| Whole split button gone | a JS error in the vendored bundle | ask for the first console error, then `scripts/uninstall.ps1` |
-| `verify` reports `lib/client.js is stale` | DSH upgraded | `node scripts/vendor-client.mjs`, reinstall |
+| No copy icon after install | app not restarted | restart once, refresh |
+| Icon present, "Open in" split button gone | an older release disabled `ui-open-in-app` | reinstall 0.2.0 or later; check `cordis.patch.yml` has no `disabled:` |
+| Open-in menus (right-click, sidebar/float) missing | same cause: a 0.1.x install disabled the shipped row | reinstall 0.2.0, restart |
+| `verify` reports the client test failing | a syntax or registration error in `lib/client.js` | run `node tests/client.test.mjs` and read the first failure |
 | Copy says "file is gone" | file renamed/moved; the Session log still names the old path | use **复制文件路径**, or re-present the file |

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Install dsh-copy-file into one dsh profile (default: auto-detect desktop, then web).
 
@@ -106,37 +106,15 @@ Write-Step "profile      : $profileName ($profileDir)"
 Write-Step "harness home : $dshHomeDir"
 
 # A PATH `dsh` may be an older npm install while the Electron app is newer; this
-# is a hint only, and the bundle check below is the real gate.
+# is a hint only. The browser half depends on one slot contract, not on a
+# version, so an unknown version is not a reason to stop.
 $dshVersion = ''
 $dshCmd = Get-Command dsh -ErrorAction SilentlyContinue
 if ($dshCmd) {
     try { $dshVersion = ((& dsh --version 2>$null | Select-Object -First 1) | Out-String).Trim() } catch { $dshVersion = '' }
 }
-if ($dshVersion -ne '' -and $dshVersion -notmatch '^0\.[23]\.') {
-    Write-Warn "dsh $dshVersion on PATH is outside the versions this release knows (0.2.0-rc.2 / 0.2.1-rc.3)"
-}
-
-# ── generated browser bundle must be current ─────────────────────────────────
-Push-Location $PackageRoot
-try {
-    $vendorCheck = (& node scripts/vendor-client.mjs --check 2>&1 | Out-String)
-    $vendorCheck.Trim().Split("`n") | Where-Object { $_.Trim() -ne '' } | ForEach-Object { Write-Step $_.Trim() }
-    if ($LASTEXITCODE -ne 0) {
-        if ($vendorCheck -match 'Could not find') {
-            # Electron-only machine: the app carries dsh inside app.asar, so there
-            # is no on-disk upstream bundle to compare against. The committed
-            # lib/client.js is the artifact that gets installed.
-            Write-Warn 'no local dsh install to compare against; using the committed lib/client.js'
-        } else {
-            Write-Step 'regenerating lib/client.js from the installed dsh bundle'
-            & node scripts/vendor-client.mjs
-            if ($LASTEXITCODE -ne 0) {
-                throw 'vendor-client.mjs failed. Install the matching dsh release (see the message above) or pass --force.'
-            }
-        }
-    }
-} finally {
-    Pop-Location
+if ($dshVersion -ne '' -and $dshVersion -notmatch '^0\.[0-9]+\.') {
+    Write-Warn "dsh $dshVersion on PATH has an unexpected shape; the installed app decides what actually runs"
 }
 
 # ── already installed? ───────────────────────────────────────────────────────
@@ -162,7 +140,7 @@ if (-not (Test-Path -LiteralPath $statePath)) {
         profile       = $profileName
         installedAt   = (Get-Date).ToString('o')
         bundlesBefore = $bundles
-        pinnedDsh     = $dshVersion
+        dshOnPath     = $dshVersion
     }
     Write-JsonFile $statePath $state
     Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $stateDir 'package.json.before') -Force
@@ -175,7 +153,7 @@ if (-not (Test-Path -LiteralPath $statePath)) {
 if (Test-Path -LiteralPath $targetDir) { Remove-Item -LiteralPath $targetDir -Recurse -Force }
 New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
 $include = @(
-    'lib', 'src', 'scripts', 'cordis.patch.yml', 'package.json',
+    'lib', 'scripts', 'cordis.patch.yml', 'package.json',
     'SKILL.md', 'README.md', 'README.en.md', 'CHANGELOG.md',
     'CONTRIBUTORS.md', 'LICENSE', 'NOTICE'
 )

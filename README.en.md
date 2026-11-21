@@ -20,14 +20,16 @@ A browser cannot help: the Clipboard API writes text and bitmaps only, and there
 
 ## What you get
 
-Three new rows inside the existing dropdown; the shipped "open with" entries and the "show file location" footer are untouched:
+One **copy icon** beside the card's "Open in" split button. The shipped "open with" entries and the "show file location" footer are untouched — still there, still the same button; this one just sits next to it:
 
-| Row | Behavior |
+| Gesture | Behavior |
 |---|---|
-| **Copy file** | The file itself (CF_HDROP). Paste into Explorer, WeChat, Feishu, mail attachments |
-| **Copy all N files** | Every file of the same `present` call, on the clipboard at once (shown only when N > 1) |
-| **Copy file path** | The absolute path, as **text** |
+| **Click the icon** | The file itself (CF_HDROP). Paste into Explorer, WeChat, Feishu, mail attachments |
+| **Right-click the icon** (the chevron beside it, in `menu`) | "Copy all N files" (shown only when N > 1) and "Copy file path" |
 | On failure | Degrades to copying the path and says **why** (file gone / clipboard busy / unsupported platform) — it never pretends to succeed. Only when even the path cannot reach the clipboard does it say "Copy failed. Try again." |
+
+Two presentations (`config.presentation`, default `icon`): `icon` is the single button with a
+right-click menu; `menu` adds a chevron that opens the same menu.
 
 Cards also get Windows-style interaction:
 
@@ -40,10 +42,11 @@ Cards also get Windows-style interaction:
 
 ## Screenshots
 
-All three shots come from a live `dsh web` session and are cropped to the control itself, so no
-workspace path, session title, or file name is visible:
+The last two shots come from a live `dsh web` session and are cropped to the control itself.
+The first is the 0.1.x look (rows inside the "open with" dropdown); since 0.2.0 the action is its
+own icon on the card, and that shot has not been retaken yet:
 
-| the three copy rows | a successful copy | a degraded copy |
+| 0.1.x dropdown (historical) | a successful copy | a degraded copy |
 |---|---|---|
 | ![menu](docs/screenshots/01-menu.png) | ![success toast](docs/screenshots/02-success.png) | ![degraded toast](docs/screenshots/03-degrade.png) |
 
@@ -60,13 +63,13 @@ workspace path, session title, or file name is visible:
 Copying does not depend on the browser: the clipboard write happens in the Host process.
 Dragging out does: it relies on the non-standard `DownloadURL` payload. Firefox and Safari get **no drag source at all** rather than a gesture that drops nothing.
 
-Platform: **Windows 11 + `dsh web`**, tested. macOS and Linux paths exist (`osascript`, `wl-copy`/`xclip`) but are **untested**.
+Platform: **Windows 11**, tested on both hosts: the Electron build (**0.2.1-rc.3 / 0.2.2-rc.5**) and `dsh web` (**0.2.0-rc.2**). macOS and Linux paths exist (`osascript`, `wl-copy`/`xclip`) but are **untested**.
 
 ---
 
 ## Install
 
-Requires Node 22.19+ and **Windows PowerShell 5.1** (the scripts carry a UTF-8 BOM and do not need pwsh 7). Both DSH **0.2.0-rc.2** (`dsh web`) and the Electron **0.2.1-rc.3** build are supported.
+Requires Node 22.19+ and **Windows PowerShell 5.1** (the scripts carry a UTF-8 BOM and do not need pwsh 7). **DSH 0.2.0-rc.2 or newer** — either `dsh web` or the Electron build; verified on 0.2.2-rc.5.
 
 ```powershell
 git clone <this-repo> dsh-copy-file
@@ -112,7 +115,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify.ps1                  # i
 powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ExpectAbsent    # after uninstall
 ```
 
-Checks package integrity, that `lib/client.js` matches the installed upstream bundle, the profile manifest, and the composed configuration (`dsh --profile <profile> --dump-config`: our row present and the shipped row disabled, or the inverse). That section reports SKIP on the Electron profile, by design.
+Checks package integrity, the browser half's slot contract (module id, no vendored upstream, the delivery slot, a patch that disables nothing, the client test), the profile manifest, and the composed configuration (`dsh --profile <profile> --dump-config`: our row present). That section reports SKIP on the Electron profile, by design.
 
 Without a GUI:
 
@@ -120,7 +123,7 @@ Without a GUI:
 node tests/clipboard.test.mjs      # real clipboard: CJK, spaces, quotes, 220-char path, multi-file, missing
 node tests/presented.test.mjs      # coordinate resolution and every refusal
 node tests/routes.test.mjs         # the four routes plus the degraded response
-node tests/client-bundle.test.mjs  # the browser half loads and registers six slots + dictionaries
+node tests/client.test.mjs         # the browser half loads, registers 2 slots, dictionaries match
 ```
 
 ---
@@ -138,26 +141,36 @@ node tests/client-bundle.test.mjs  # the browser half loads and registers six sl
 
 ## Compatibility
 
-Supported releases: **DSH 0.2.0-rc.2 and 0.2.1-rc.3 (Electron)**. `vendor-client.mjs` gates on a `SUPPORTED_VERSIONS` whitelist; both releases share one `lib/client.js` (the upstream `ui-open-in-app` bundle did not change, `--check` reports current). When there is no on-disk dsh to compare against (the Electron build keeps it inside `app.asar`), `--check` reports SKIP and installation uses the committed artifact. The shipped dropdown has no menu-item slot, so the only non-invasive way to add rows *inside* it is to vendor that browser package and splice three additive hunks, then replace the row through a bundle patch.
+Compatibility is a contract, not a version number. The browser half needs three things:
+`deliverables.file.actions` stays a `kind: list` slot; the card keeps passing
+`actionUrl / available / pending / onAction`; the card root keeps `data-presented-file`.
+Verified on **0.2.0-rc.2 / 0.2.1-rc.3 / 0.2.2-rc.5**; a newer release needs no adaptation
+while those hold.
 
-`lib/client.js` is generated:
+Why the vendoring is gone: the shipped dropdown has no menu-item slot, but the card's
+**action area is itself a list slot** — registering a second occupant (`id: 'copy-file'`)
+is enough, with no need to replace the upstream package. `0.2.2-rc.5` ships
+`ui-open-in-app/lib/client.js` as a single minified line: 7 of the 9 splice anchors were gone
+and `useDeliveryCard` no longer existed upstream, so the old pipeline **could not regenerate
+at all** — while its `disabled: true` still matched the shipped row and would silently swap
+the whole new open-in-app for the 0.2.1 copy (losing the file / image / URL / workspace
+right-click menus, open-in-sidebar and open-in-float, and the Open locally shortcut).
 
-```
-src/copy-ui.js              ← all added code, readable and editable
-lib/client.js               ← generated, do not hand-edit
-scripts/vendor-client.mjs   ← regenerates from the installed DSH; fails loudly on a moved anchor
-```
+`lib/client.js` is hand-written (~33 KB). Scripts and tests no longer generate it.
 
-After a DSH upgrade: `--check` reports drift, `vendor-client.mjs` regenerates (and names the exact anchor that broke), reinstall, restart once.
+After a DSH upgrade: just reinstall. If the contract ever moves, the symptom is a missing
+copy icon rather than an error, and `scripts/verify.ps1 [2]` plus `node tests/client.test.mjs`
+report it first.
 
 Measured behavior: **adding a row needs a restart; removing one applies live.**
 
 ---
 
-## Upstream suggestion
+## Upstream
 
-The vendored bundle exists only because the shipped dropdown has no menu-item slot.
-An issue draft for upstream lives in [docs/upstream-issue.md](docs/upstream-issue.md) — landing it would delete the fork entirely.
+`docs/upstream-issue.md` is a 0.1.x-era request (a menu-item slot inside the dropdown).
+`0.2.x` already exposes `deliverables.file.actions` as a list slot, so the request is no
+longer needed for this project; it is kept as history.
 
 ---
 

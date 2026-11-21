@@ -24,10 +24,9 @@ macOS / Linux 的代码路径存在但**未测试**，改动它们请自行标�
 lib/index.js          宿主半：四条已认证路由（copy.file / copy.path / copy.probe / copy.raw）
 lib/presented.mjs     坐标 → 路径；含"文件已删仍给路径"的声明解析
 lib/clipboard.mjs     CF_HDROP 写入 + 回读校验（Windows .NET Clipboard）
-lib/client.js         **生成物**，不要手改
-src/copy-ui.js        浏览器半的全部新增代码（菜单、选中、双击、Ctrl+C、拖拽）
-cordis.patch.yml      bundle 补丁：禁用 ui-open-in-app，插入本包
-scripts/              安装 / 卸载 / 校验 / vendor
+lib/client.js         浏览器半（手写：一个 occupant、两种外观、卡片交互）
+cordis.patch.yml      bundle 补丁：只插入本包一行，不禁用任何原生行
+scripts/              安装 / 卸载 / 校验
 tests/                不需要 GUI 的测试
 ```
 
@@ -39,7 +38,7 @@ tests/                不需要 GUI 的测试
 # 不碰真实剪贴板的三个套件（任何沙箱都能跑）
 node tests/presented.test.mjs
 node tests/routes.test.mjs
-node tests/client-bundle.test.mjs
+node tests/client.test.mjs
 
 # 真机剪贴板（会覆盖系统剪贴板；沙箱里会 skip 5 条）
 node tests/clipboard.test.mjs
@@ -54,24 +53,21 @@ powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ExpectAbsent   # �
 
 ---
 
-## 4. 改动浏览器半：只改 `src/copy-ui.js`
+## 4. 改动浏览器半：直接改 `lib/client.js`
 
-`lib/client.js` 是 `@deepseek-ai/dsh-client-ui-open-in-app` 的派生副本，由脚本生成：
+`lib/client.js` 是手写源码，没有生成步骤，也没有上游副本：
 
 ```powershell
-# 改完 src/copy-ui.js 之后
-node scripts/vendor-client.mjs          # 重新生成
-node scripts/vendor-client.mjs --check  # 只检查是否过期（CI 用）
-node tests/client-bundle.test.mjs       # 确认仍然注册 6 个槽位 + 两份字典
+node tests/client.test.mjs   # 模块 id、两个 occupant、字典键成对
 ```
 
 规则：
 
-- **不要手改 `lib/client.js`**：下次 vendor 会把改动冲掉。
-- 脚本对每一处插入都做"锚点必须存在且唯一"的断言；上游改了结构就**直接失败并指名**哪一处，不会产出半坏的包。
-- 新增文案一律加进 `scripts/vendor-client.mjs` 的 `localeBlock` / `localeBlockEn`（中英成对），不要硬编码在组件里。
-- 新增的菜单项 id、槽占用 id、语言命名空间都用本包自己的名字，避免热切换瞬间与上游重复注册。
-- 升级 DSH 后：先 `--check` 看漂移，把新版本加进 `SUPPORTED_VERSIONS` 再 `vendor`，然后**重新安装 + 重启 DSH**（桌面版退出应用）。
+- 组件只注册**一个 occupant**（`id: 'copy-file'`）到 `deliverables.file.actions` 与其审查卡孪生槽位；**永远不要 disable `ui-open-in-app`**，也不要复制上游实现。
+- 卡片手势靠 `anchor.closest('[data-presented-file]')` 从自己的锚点往上找，所以不要假设自己渲染在原生按钮内部。
+- 新增文案一律加进 `lib/client.js` 末尾的 `zh` / `en` 两份字典（键必须成对），不要硬编码在组件里。
+- 新槽位 id、locale 命名空间都用本包自己的名字（`copy-file`），避免热切换瞬间与别的插件重复注册。
+- 升级 DSH 后：正常只需重装。若哪天 `deliverables.file.actions` 不再是 list 槽位或 props 改名，症状是"卡片上没有复制图标"——先看 `verify.ps1` 的 `[2]` 段。
 
 ---
 
@@ -125,4 +121,4 @@ test: ...     测试
 chore: ...    版本、构建、杂项
 ```
 
-一次提交只做一件事；涉及 `lib/client.js` 的提交请同时提交 `src/copy-ui.js` 与重生成结果，否则 `verify` 会报过期。
+一次提交只做一件事。`lib/client.js` 是源码，改了它就在同一个提交里带上 `tests/client.test.mjs` 的相应断言——`verify` 会跑那份测试。
