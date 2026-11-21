@@ -146,7 +146,15 @@ if (-not (Test-Path -LiteralPath $statePath)) {
     Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $stateDir 'package.json.before') -Force
     Write-Ok 'recorded the pre-install profile manifest'
 } else {
-    Write-Step 'keeping the existing install record (idempotent)'
+    # Keep the bundle baseline and the first-install time (uninstall relies on the
+    # baseline), but let the observed fields follow this install so the record
+    # never claims an older version than the one on disk.
+    $state = Read-JsonFile $statePath
+    $state | Add-Member -NotePropertyName version -NotePropertyValue $version -Force
+    $state | Add-Member -NotePropertyName dshOnPath -NotePropertyValue $dshVersion -Force
+    $state.PSObject.Properties.Remove('pinnedDsh')
+    Write-JsonFile $statePath $state
+    Write-Step 'refreshed the existing install record (bundlesBefore kept)'
 }
 
 # ── copy the package into the profile ────────────────────────────────────────
