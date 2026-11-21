@@ -12,12 +12,14 @@ concurrency:
 
 jobs:
   test:
-    name: node ${{ matrix.node }} · ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: node ${{ matrix.node }}
+    # 只跑 Windows：这个包的交付路径解析、剪贴板写入（CF_HDROP）和卡片交互都是
+    # Windows 语义，`presented` 的用例也直接用 `D:\ws` 这类路径。放到 Linux 上
+    # 跑只会把"不是 Windows"当成失败信号，反而掩盖真实回归。
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
         node: [22, 24]
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +32,6 @@ jobs:
       - name: Syntax check
         run: node --check lib/client.js
 
-      # clipboard 用例在非 Windows 上自行 skip；其余三个跨平台。
       - name: Tests
         shell: bash
         run: node --test tests/client.test.mjs tests/presented.test.mjs tests/routes.test.mjs tests/clipboard.test.mjs
