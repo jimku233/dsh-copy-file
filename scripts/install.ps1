@@ -3,8 +3,9 @@
     Install dsh-copy-file into one dsh profile (default: auto-detect desktop, then web).
 
 .DESCRIPTION
-    Idempotent. Copies this package into the profile's node_modules, appends it
-    to dsh.profile.bundles, and records the pre-install manifest so uninstall can
+    Idempotent. Registers this package in the profile with `dsh plugin add`, so the
+    profile keeps a `link:` dependency on this checkout, appends it to
+    dsh.profile.bundles, and records the pre-install manifest so uninstall can
     remove exactly its own entry. Never edits a file inside the dsh installation:
     the feature is one bundle row plus a package the profile owns.
 
@@ -182,20 +183,23 @@ if (-not (Test-Path -LiteralPath $statePath)) {
     Write-Step 'refreshed the existing install record (bundlesBefore kept)'
 }
 
-# ── copy the package into the profile ────────────────────────────────────────
-if (Test-Path -LiteralPath $targetDir) { Remove-Item -LiteralPath $targetDir -Recurse -Force }
-New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
-$include = @(
-    'lib', 'scripts', 'cordis.patch.yml', 'package.json',
-    'SKILL.md', 'README.md', 'README.en.md', 'CHANGELOG.md',
-    'CONTRIBUTORS.md', 'LICENSE', 'NOTICE'
-)
-foreach ($item in $include) {
-    $source = Join-Path $PackageRoot $item
-    if (-not (Test-Path -LiteralPath $source)) { continue }
-    Copy-Item -LiteralPath $source -Destination $targetDir -Recurse -Force
+# ── register the package with the profile manager ────────────────────────────────────────
+# Copying files into node_modules does not survive `pnpm install`: the plugin
+# manager prunes anything that is not a declared dependency. `dsh plugin add`
+# records a `link:` dependency pointing at this checkout, so installing another
+# plugin later cannot delete this one.
+if (-not $dshCmd) { throw "dsh was not found on PATH; it is required to register the package with profile '$profileName'." }
+$previous = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    $add = (& dsh plugin --profile $profileName add $PackageRoot 2>&1 | Out-String)
+    $addCode = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = $previous
 }
-Write-Ok "copied package $version to $targetDir"
+$add.Trim().Split("`n") | Where-Object { $_.Trim() -ne '' } | ForEach-Object { Write-Step $_.Trim() }
+if ($addCode -ne 0) { throw "dsh plugin add failed for '$PackageName' (exit $addCode). See the output above." }
+Write-Ok "registered $PackageName -> $PackageRoot (linked, not copied)"
 
 # ── enable the bundle row (always last) ──────────────────────────────────────
 if ($bundles -notcontains $PackageName) {
@@ -207,9 +211,6 @@ if ($bundles -notcontains $PackageName) {
     Write-Ok "enabled bundle '$PackageName' (kept last so its patch applies over the shipped rows)"
 } else {
     Write-Ok "bundle '$PackageName' is already enabled"
-    if ($bundles[-1] -ne $PackageName) {
-        Write-Warn "the bundle is not last in dsh.profile.bundles; move it to the end or ui-open-in-app will not be disabled"
-    }
 }
 
 # ── smoke check the composed tree ────────────────────────────────────────────

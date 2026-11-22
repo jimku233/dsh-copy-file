@@ -4,6 +4,24 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] — 2026-11-22
+
+### Changed
+
+- **安装方式改成登记依赖，不再往 `node_modules` 里拷文件。** 现在 `install.ps1` 调用
+  `dsh plugin --profile <name> add <本目录>`，在 profile 里写一条 `link:` 依赖；`uninstall.ps1`
+  对应 `dsh plugin remove`（遇到旧的拷贝式安装会退回直接删目录）。
+- 原因：0.2.x 一直把文件直接拷进 `node_modules`，而插件页装别的插件时会跑 `pnpm install`，
+  它会把**不在 `dependencies` 里的包**全部清掉 —— 2026-11-22 19:00 装了 `dsh-plugin-grill-me`
+  之后，本包和 `dsh-temp-sweep` 同时被删，插件页报 `cannot resolve profile bundle`。
+- `verify.ps1` 增加一项：profile 是否把本包声明为依赖（这是「下次 pnpm install 不会被删」的判据）。
+- 删掉一条过期的检查：`bundle stays last so its patch applies over the shipped rows` —— 0.2.0
+  起本包不再禁用任何上游行，位置先后已经无关。
+
+### 注意
+
+- 因为改成了 `link:`，仓库目录就是安装源：改代码后**重启应用即可生效，不用重装**。
+
 ## [0.2.3] — 2026-11-22
 
 只有样式与渲染顺序，没有新功能。两个包同步升版；装完需要重启一次（客户端 bundle 在启动时解析）。

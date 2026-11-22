@@ -98,6 +98,12 @@ if ($ExpectAbsent) {
         $installedVersion = (Read-JsonFile (Join-Path $targetDir 'package.json')).version
         $sourceVersion = (Read-JsonFile (Join-Path $PackageRoot 'package.json')).version
         Write-Check ($installedVersion -eq $sourceVersion) "installed version $installedVersion matches the checkout $sourceVersion"
+        $deps = @()
+        try {
+            $declared = (Read-JsonFile $manifestPath).dependencies
+            if ($declared) { $deps = @($declared.PSObject.Properties.Name) }
+        } catch { $deps = @() }
+        Write-Check ($deps -contains $PackageName) "profile declares '$PackageName' as a dependency (a later pnpm install keeps it)"
     }
 }
 
@@ -144,7 +150,6 @@ if ($ExpectAbsent) {
     Write-Check (-not $listed) 'bundle list no longer names the package'
 } else {
     Write-Check $listed "bundle list names '$PackageName'"
-    Write-Check ($bundles.Count -gt 0 -and $bundles[$bundles.Count - 1] -eq $PackageName) 'bundle stays last so its patch applies over the shipped rows'
 }
 
 Write-Host "`n[4] composed configuration" -ForegroundColor White

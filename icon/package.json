@@ -1,6 +1,6 @@
 {
   "name": "dsh-copy-file-icon",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "dsh-copy-file with a single icon button instead of the icon + chevron pair.",
   "license": "MIT",
   "author": "jimku233",

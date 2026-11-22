@@ -106,8 +106,20 @@ if ($kept.Count -ne $bundles.Count) {
 
 # ── remove the package and the record ───────────────────────────────────────
 if (Test-Path -LiteralPath $targetDir) {
-    Remove-Item -LiteralPath $targetDir -Recurse -Force
-    Write-Ok "removed $targetDir"
+    $dshCmd = Get-Command dsh -ErrorAction SilentlyContinue
+    if ($dshCmd) {
+        $previous = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { $null = (& dsh plugin --profile $profileName remove $PackageName 2>&1) } finally { $ErrorActionPreference = $previous }
+    }
+    if (Test-Path -LiteralPath $targetDir) {
+        # A copy-installed leftover (0.2.x and older) has no dependency entry, so
+        # the package manager does not know about it; delete it directly.
+        Remove-Item -LiteralPath $targetDir -Recurse -Force
+        Write-Ok "removed $targetDir"
+    } else {
+        Write-Ok "unregistered '$PackageName' from the profile"
+    }
 } else {
     Write-Step 'package directory was already absent'
 }
