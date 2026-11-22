@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] — 2026-11-22
+
+只有样式与渲染顺序，没有新功能。两个包同步升版；装完需要重启一次（客户端 bundle 在启动时解析）。
+
+### Fixed
+
+- **复制按钮会随启动换边**：`deliverables.file.actions` 按 occupant 的注册先后渲染，而两个插件的
+  模块加载顺序不固定 —— 这个按钮有时落在「打开」左边、有时在右边。现在注册时带 `order: 100`，
+  固定排在「打开」之后，`tests/client.test.mjs` 也断言了这一条。
+- **间距一直加在错的一侧**：按钮排在「打开」之前时，`margin-inline-start` 只会把它往右推，
+  两个按钮之间的缝隙一点没变（所以 8px 和 16px 看起来完全一样）。换成朝按钮那一侧才生效。
+
+### Changed
+
+- 最终间距：左边 8px、右边 0（复制按钮紧贴卡片右边距）。
+
+### 已验证
+
+- 四个测试文件全绿（client 5 / variant 3 / presented 11 / routes 5）；`make-variant --check` 通过
+- CI（Windows × Node 22/24）绿
+
 ## [0.2.2] — 2026-11-21
 
 **拆成两个包**，装哪个用哪个：
